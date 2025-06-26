@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NanoGPT Metal Lyrics - Flowchart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            color: #4facfe;
+            font-weight: 300;
+        }
+
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            position: relative;
+        }
+
+        .stage {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            min-height: 120px;
+            position: relative;
+        }
+
+        .stage.reverse {
+            flex-direction: row-reverse;
+        }
+
+        .node {
+            background: #fff;
+            color: #333;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            min-width: 200px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 3px solid transparent;
+        }
+
+        .node:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+        }
+
+        /* Hybrid Approach: Rounded rectangles with semantic indicators */
+        .node.source {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: #9f7aea;
+            border-radius: 50px;
+            position: relative;
+        }
+
+        .node.source::before {
+            content: '🎯';
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #48bb78;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border: 3px solid white;
+        }
+
+        .node.process {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            border-color: #f56565;
+            position: relative;
+        }
+
+        .node.process::before {
+            content: '⚙️';
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            background: #4299e1;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border: 3px solid white;
+        }
+
+        .node.data {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            color: white;
+            border-color: #0ea5e9;
+            border-radius: 8px;
+            position: relative;
+            border-left: 8px solid #0ea5e9;
+        }
+
+        .node.data::before {
+            content: '📄';
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #ed8936;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border: 3px solid white;
+        }
+
+        .node.decision {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            color: #333;
+            border-color: #f6ad55;
+            border-radius: 15px;
+            position: relative;
+            border: 4px dashed #f6ad55;
+        }
+
+        .node.decision::before {
+            content: '❓';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f6ad55;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border: 3px solid white;
+        }
+
+        .node.ai {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: #1a202c;
+            border-color: #38b2ac;
+            border-radius: 20px;
+            position: relative;
+            border: 4px solid #38b2ac;
+        }
+
+        .node.ai::before {
+            content: '🤖';
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: #9f7aea;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            border: 3px solid white;
+        }
+
+        .node.completed {
+            border-color: #48bb78;
+            box-shadow: 0 0 20px rgba(72, 187, 120, 0.5);
+        }
+
+        .node.completed::after {
+            content: '✅';
+            position: absolute;
+            bottom: -15px;
+            right: -15px;
+            background: #48bb78;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            border: 2px solid white;
+        }
+
+        .node.in-progress {
+            border-color: #ed8936;
+            box-shadow: 0 0 20px rgba(237, 137, 54, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .node.in-progress::after {
+            content: '🔄';
+            position: absolute;
+            bottom: -15px;
+            right: -15px;
+            background: #ed8936;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            border: 2px solid white;
+            animation: spin 2s linear infinite;
+        }
+
+        .node.issue {
+            border-color: #f56565;
+            box-shadow: 0 0 20px rgba(245, 101, 101, 0.5);
+        }
+
+        .node.issue::after {
+            content: '⚠️';
+            position: absolute;
+            bottom: -15px;
+            right: -15px;
+            background: #f56565;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            border: 2px solid white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .node-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .node-subtitle {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .node-details {
+            font-size: 0.8em;
+            line-height: 1.4;
+        }
+
+        .arrow {
+            flex: 1;
+            height: 6px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+            position: relative;
+            border-radius: 3px;
+            box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
+        }
+
+        .arrow::after {
+            content: '';
+            position: absolute;
+            right: -12px;
+            top: -9px;
+            width: 0;
+            height: 0;
+            border-left: 18px solid #00f2fe;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .stage.reverse .arrow {
+            background: linear-gradient(90deg, #00f2fe, #4facfe);
+        }
+
+        .stage.reverse .arrow::after {
+            left: -12px;
+            right: auto;
+            border-left: none;
+            border-right: 18px solid #4facfe;
+        }
+
+        .branch-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            flex: 2;
+        }
+
+        .branch {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .branch .node {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .branch .arrow {
+            flex: none;
+            width: 100px;
+            height: 4px;
+        }
+
+        .decision-hub {
+            position: relative;
+            margin: 20px 0;
+        }
+
+        .decision-branches {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            margin-left: 60px;
+        }
+
+        .branch-label {
+            font-size: 0.8em;
+            color: #f6ad55;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 25px;
+            justify-content: center;
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .legend-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        .legend-demo {
+            position: relative;
+            width: 60px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .legend-demo.source {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 30px;
+        }
+
+        .legend-demo.process {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .legend-demo.data {
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            border-left: 6px solid #0ea5e9;
+        }
+
+        .legend-demo.decision {
+            background: linear-gradient(135deg, #ffecd2, #fcb69f);
+            border: 3px dashed #f6ad55;
+            color: #333;
+        }
+
+        .legend-demo.ai {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            border: 3px solid #38b2ac;
+            color: #1a202c;
+        }
+
+        .legend-demo::before {
+            content: attr(data-icon);
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #4299e1;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            border: 2px solid white;
+        }
+
+        .metrics {
+            background: rgba(255,255,255,0.15);
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 12px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.85em;
+        }
+
+        .metric:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+
+        .status-badge {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge.completed {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+        }
+
+        .status-badge.in-progress {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+            color: white;
+        }
+
+        .status-badge.issue {
+            background: linear-gradient(135deg, #f56565, #e53e3e);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .stage {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stage.reverse {
+                flex-direction: column;
+            }
+
+            .arrow {
+                width: 6px;
+                height: 40px;
+                background: linear-gradient(180deg, #4facfe, #00f2fe);
+            }
+
+            .arrow::after {
+                top: auto;
+                bottom: -12px;
+                left: -9px;
+                right: auto;
+                border-left: 12px solid transparent;
+                border-right: 12px solid transparent;
+                border-top: 18px solid #00f2fe;
+                border-bottom: none;
+            }
+
+            .branch {
+                flex-direction: column;
+            }
+
+            .branch .arrow {
+                width: 6px;
+                height: 40px;
+            }
+
+            .decision-branches {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🎸 NanoGPT Metal Lyrics Project</h1>
+        <h2 class="subtitle">Hybrid Design - Best of Both Worlds (Option C)</h2>
+        
+        <div class="flowchart">
+            <!-- Stage 1: Data Collection -->
+            <div class="stage">
+                <div class="node source completed" data-tooltip="DarkLyrics.com metal music database - our data source">
+                    <div class="node-title">🌐 Data Source</div>
+                    <div class="node-subtitle">DarkLyrics.com</div>
+                    <div class="node-details">Metal Music Database<br>Comprehensive lyrics collection</div>
+                </div>
+                <div class="arrow"></div>
+                <div class="node process completed">
+                    <div class="node-title">🕷️ Web Scraper</div>
+                    <div class="node-subtitle">build_dataset.py</div>
+                    <div class="node-details">
+                        • Scrapes A-Z bands<br>
+                        • Extracts metadata<br>
+                        • Speed optimized<br>
+                        • Complete site coverage
+                    </div>
+                </div>
+                <div class="arrow"></div>
+                <div class="node data completed">
+                    <div class="node-title">📄 Raw Dataset</div>
+                    <div class="node-subtitle">all_lyrics.txt</div>
+                    <div class="node-details">
+                        647,708 lines<br>
+                        ~20MB data<br>
+                        Raw format
+                    </div>
+                    <div class="metrics">
+                        <div class="metric"><span>Size:</span><span>20.4MB</span></div>
+                        <div class="metric"><span>Characters:</span><span>20.4M</span></div>
+                        <div class="metric"><span>Status:</span><span>✅ Complete</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 2: Data Processing Decision -->
+            <div class="stage reverse">
+                <div class="node process completed">
+                    <div class="node-title">🔄 Data Processing</div>
+                    <div class="node-subtitle">data_sorter.py</div>
+                    <div class="node-details">
+                        • Cleans raw format<br>
+                        • Creates multiple outputs<br>
+                        • Structures hierarchically<br>
+                        • Removes noise
+                    </div>
+                </div>
+                <div class="arrow"></div>
+                <div class="decision-hub">
+                    <div class="node decision completed">
+                        <div class="node-title">📊 Format Choice</div>
+                        <div class="node-subtitle">Which format works best?</div>
+                        <div class="node-details">Multiple output options available</div>
+                    </div>
+                    <div class="decision-branches">
+                        <div class="branch">
+                            <div class="branch-label">Option 1: Structured</div>
+                            <div class="arrow"></div>
+                            <div class="node data completed">
+                                <div class="node-title">📋 Structured</div>
+                                <div class="node-subtitle">structured_lyrics.txt</div>
+                                <div class="node-details">667K lines<br>XML-like tags<br>Verbose format</div>
+                            </div>
+                        </div>
+                        <div class="branch">
+                            <div class="branch-label">✅ Recommended Choice</div>
+                            <div class="arrow"></div>
+                            <div class="node data completed">
+                                <div class="node-title">🎯 Training Format</div>
+                                <div class="node-subtitle">training_formatted_lyrics.txt</div>
+                                <div class="node-details">685K lines<br>⭐ BEST FOR AI<br>Clean structure</div>
+                                <div class="metrics">
+                                    <div class="metric"><span>Lines:</span><span>685,730</span></div>
+                                    <div class="metric"><span>Quality:</span><span>⭐ Excellent</span></div>
+                                    <div class="metric"><span>AI Ready:</span><span>✅ Yes</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="branch">
+                            <div class="branch-label">⚠️ Processing Issue</div>
+                            <div class="arrow"></div>
+                            <div class="node data issue">
+                                <div class="node-title">❌ Lyrics Only</div>
+                                <div class="node-subtitle">lyrics_only.txt</div>
+                                <div class="node-details">285 lines<br>TOO SMALL!<br>Processing failed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 3: Binary Preparation -->
+            <div class="stage">
+                <div class="node data completed">
+                    <div class="node-title">✅ Selected Format</div>
+                    <div class="node-subtitle">training_formatted_lyrics.txt</div>
+                    <div class="node-details">Chosen for training pipeline</div>
+                </div>
+                <div class="arrow"></div>
+                <div class="node process completed">
+                    <div class="node-title">🔢 Binary Preparation</div>
+                    <div class="node-subtitle">prepare.py</div>
+                    <div class="node-details">
+                        • Tokenizes text<br>
+                        • Creates vocabulary<br>
+                        • Splits train/validation<br>
+                        • Binary format
+                    </div>
+                </div>
+                <div class="arrow"></div>
+                <div class="node data completed">
+                    <div class="node-title">📦 Binary Training Data</div>
+                    <div class="node-subtitle">Ready for GPU Training</div>
+                    <div class="node-details">
+                        train.bin (18.4M tokens)<br>
+                        val.bin (2.0M tokens)<br>
+                        meta.pkl (905 chars)
+                    </div>
+                    <div class="metrics">
+                        <div class="metric"><span>Train:</span><span>18.4M tokens</span></div>
+                        <div class="metric"><span>Validation:</span><span>2.0M tokens</span></div>
+                        <div class="metric"><span>Vocabulary:</span><span>905 characters</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 4: Training Decision -->
+            <div class="stage reverse">
+                <div class="node ai completed">
+                    <div class="node-title">🏗️ GPT Architecture</div>
+                    <div class="node-subtitle">model.py</div>
+                    <div class="node-details">
+                        • Transformer layers<br>
+                        • Self-attention mechanism<br>
+                        • Character-level tokens<br>
+                        • Configurable model size
+                    </div>
+                </div>
+                <div class="arrow"></div>
+                <div class="decision-hub">
+                    <div class="node decision completed">
+                        <div class="node-title">🎯 Training Strategy</div>
+                        <div class="node-subtitle">Quick test or full training?</div>
+                        <div class="node-details">RTX 3050 optimized configs</div>
+                    </div>
+                    <div class="decision-branches">
+                        <div class="branch">
+                            <div class="branch-label">✅ Validation Complete</div>
+                            <div class="arrow"></div>
+                            <div class="node ai completed">
+                                <div class="node-title">🧪 Test Training</div>
+                                <div class="node-subtitle">Quick Validation</div>
+                                <div class="node-details">3.38M parameters<br>1K iterations<br>✅ COMPLETED</div>
+                            </div>
+                        </div>
+                        <div class="branch">
+                            <div class="branch-label">🔄 Production Training</div>
+                            <div class="arrow"></div>
+                            <div class="node ai in-progress">
+                                <div class="node-title">🏆 Full Training</div>
+                                <div class="node-subtitle">Production Model</div>
+                                <div class="node-details">25.64M parameters<br>10K iterations<br>🔄 IN PROGRESS</div>
+                                <div class="metrics">
+                                    <div class="metric"><span>Model Size:</span><span>25.64M params</span></div>
+                                    <div class="metric"><span>Target:</span><span>10K iterations</span></div>
+                                    <div class="metric"><span>GPU:</span><span>RTX 3050 optimized</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stage 5: Text Generation -->
+            <div class="stage">
+                <div class="node data completed">
+                    <div class="node-title">💾 Model Checkpoint</div>
+                    <div class="node-subtitle">Trained Weights</div>
+                    <div class="node-details">
+                        out-darklyrics/ckpt.pt<br>
+                        Model weights saved<br>
+                        Ready for inference
+                    </div>
+                </div>
+                <div class="arrow"></div>
+                <div class="node process completed">
+                    <div class="node-title">🎲 Text Generation</div>
+                    <div class="node-subtitle">sample.py</div>
+                    <div class="node-details">
+                        • Load trained checkpoint<br>
+                        • Configurable prompts<br>
+                        • Temperature control<br>
+                        • Multiple sample generation
+                    </div>
+                </div>
+                <div class="arrow"></div>
+                <div class="node source completed">
+                    <div class="node-title">🎤 Generated Content</div>
+                    <div class="node-subtitle">AI Metal Lyrics</div>
+                    <div class="node-details">
+                        Metal-style lyrics<br>
+                        Training data style<br>
+                        Various themes & prompts
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Indicators -->
+        <div class="status-indicators">
+            <div class="status-badge completed">
+                <span>✅</span>
+                <span>6 Components Completed</span>
+            </div>
+            <div class="status-badge in-progress">
+                <span>🔄</span>
+                <span>1 Training In Progress</span>
+            </div>
+            <div class="status-badge issue">
+                <span>⚠️</span>
+                <span>1 Issue to Fix</span>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-demo source" data-icon="🎯">SRC</div>
+                <span>Data Sources<br><small>Start/End points</small></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-demo process" data-icon="⚙️">PRC</div>
+                <span>Processes<br><small>Actions/Operations</small></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-demo data" data-icon="📄">DATA</div>
+                <span>Data Files<br><small>Input/Output files</small></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-demo decision" data-icon="❓">DEC</div>
+                <span>Decisions<br><small>Choice points</small></span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-demo ai" data-icon="🤖">AI</div>
+                <span>AI Components<br><small>ML/Training parts</small></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add smooth scroll animations
+        window.addEventListener('scroll', function() {
+            const nodes = document.querySelectorAll('.node');
+            
+            nodes.forEach(node => {
+                const rect = node.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                
+                if (isVisible) {
+                    node.style.opacity = '1';
+                    node.style.transform = 'translateY(0) scale(1)';
+                } else {
+                    node.style.opacity = '0.8';
+                    node.style.transform = 'translateY(20px) scale(0.98)';
+                }
+            });
+        });
+
+        // Node interaction
+        document.querySelectorAll('.node').forEach(node => {
+            node.addEventListener('click', function() {
+                const title = this.querySelector('.node-title').textContent;
+                const subtitle = this.querySelector('.node-subtitle')?.textContent || '';
+                const details = this.querySelector('.node-details').textContent;
+                
+                // Create a more detailed popup or modal here
+                console.log(`${title} - ${subtitle}: ${details}`);
+            });
+        });
+
+        // Initialize animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Trigger initial scroll check
+            window.dispatchEvent(new Event('scroll'));
+        });
+    </script>
+</body>
+</html>
