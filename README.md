@@ -18,7 +18,7 @@ This project is organized with a clean separation between backend and frontend c
 │   ├── scrapers/     # Data collection tools
 │   ├── training/     # Training and sampling scripts
 │   ├── utils/        # Utility functions
-|   |__ Visualization/# Project documentation and visualizations
+|   |__ visualization/# Project documentation and visualizations
 │   └── notebooks/    # Analysis notebooks
 ├── assets/           # Images and static files
 ├── LICENSE
@@ -26,6 +26,13 @@ This project is organized with a clean separation between backend and frontend c
 ```
 
 See [backend/README.md](backend/README.md) for detailed backend documentation.
+
+## Architecture & Visualization
+
+For a comprehensive understanding of the ATOM-GPT architecture and workflow:
+
+- **📊 [ATOM GPT Flowchart](backend/visualization/ATOM%20GPT%20FLOWCHART%20.pdf)** - Hand drawn representation of the training pipeline and model architecture
+- **🔄 [Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html)** - Interactive flowchart showing the complete data processing and training workflow
 
 Because the code is optimized for metal lyrics generation, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints for different metal genres and styles.
 
@@ -286,6 +293,10 @@ Note that the code by default uses [PyTorch 2.0](https://pytorch.org/get-started
 Note that by default this repo uses PyTorch 2.0 (i.e. `torch.compile`). This is fairly new and experimental, and not yet available on all platforms (e.g. Windows). If you're running into related error messages try to disable this by adding `--compile=False` flag. This will slow down the code but at least it will run.
 
 For some context on this repository, GPT, and language modeling it might be helpful to explore transformer architectures and creative text generation. ATOM-GPT focuses specifically on metal music content generation and provides specialized tools for training on metal lyrics datasets.
+
+📋 **Documentation & Visualizations:**
+- Review the [ATOM GPT Flowchart](backend/visualization/ATOM%20GPT%20FLOWCHART%20.pdf) for initial overview
+- Explore the [Interactive Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html) for workflow visualization
 
 For questions or discussions about ATOM-GPT, feel free to open issues on the GitHub repository.
 
