@@ -1,8 +1,8 @@
-# nanoGPT
+# ATOM-GPT
 
-![nanoGPT](assets/nanogpt.jpg)
+![ATOM-GPT](assets/nanogpt.jpg)
 
-The simplest, fastest repository for training/finetuning medium-sized GPTs. It is a rewrite of [minGPT](https://github.com/karpathy/minGPT) that prioritizes teeth over education. Still under active development, but currently the file `train.py` reproduces GPT-2 (124M) on OpenWebText, running on a single 8XA100 40GB node in about 4 days of training. The code itself is plain and readable: `train.py` is a ~300-line boilerplate training loop and `model.py` a ~300-line GPT model definition, which can optionally load the GPT-2 weights from OpenAI. That's it.
+**A**dvanced **T**ransformer **O**ptimized for **M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
 
 ![repro124m](assets/gpt2_124M_loss.png)
 
@@ -27,7 +27,7 @@ This project is organized with a clean separation between backend and frontend c
 
 See [backend/README.md](backend/README.md) for detailed backend documentation.
 
-Because the code is so simple, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints (e.g. biggest one currently available as a starting point would be the GPT-2 1.3B model from OpenAI).
+Because the code is optimized for metal lyrics generation, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints for different metal genres and styles.
 
 ## install
 
@@ -66,7 +66,7 @@ python train.py ../config/train_darklyrics.py
 
 For a more substantial training experience using the comprehensive metal lyrics dataset:
 
-**Step 1: Prepare the lyrics dataset**
+**Step 1: Prepare the metal lyrics dataset**
 ```sh
 python backend/data/DarkLyrics/prepare.py
 ```
@@ -79,7 +79,7 @@ cd backend/training
 python train.py ../config/train_darklyrics.py
 ```
 
-This config is optimized for RTX 3050 GPUs (8GB VRAM) and will train a GPT model on metal lyrics. Training will take several hours but will create a model capable of generating metal lyrics in various styles.
+This config is optimized for RTX 3050 GPUs (8GB VRAM) and will train a GPT model on metal lyrics. Training will take several hours but will create a model capable of generating lyrics in various metal styles.
 
 **Step 3: Generate lyrics**
 ```sh
@@ -241,7 +241,7 @@ However, we have to note that GPT-2 was trained on (closed, never released) WebT
 
 ## finetuning
 
-Finetuning is no different than training, we just make sure to initialize from a pretrained model and train with a smaller learning rate. For finetuning on the metal lyrics dataset, you can create a new config that initializes from a pretrained GPT-2 checkpoint. Unlike training from scratch, finetuning can take very little time, e.g. on a single GPU just a few minutes.
+For finetuning on the metal lyrics dataset, you can create a new config that initializes from a pretrained GPT-2 checkpoint. Unlike training from scratch, finetuning can take very little time, e.g. on a single GPU just a few minutes.
 
 To create a finetuning config:
 1. Copy `backend/config/train_darklyrics.py` 
@@ -285,15 +285,13 @@ Note that the code by default uses [PyTorch 2.0](https://pytorch.org/get-started
 
 Note that by default this repo uses PyTorch 2.0 (i.e. `torch.compile`). This is fairly new and experimental, and not yet available on all platforms (e.g. Windows). If you're running into related error messages try to disable this by adding `--compile=False` flag. This will slow down the code but at least it will run.
 
-For some context on this repository, GPT, and language modeling it might be helpful to watch my [Zero To Hero series](https://karpathy.ai/zero-to-hero.html). Specifically, the [GPT video](https://www.youtube.com/watch?v=kCc8FmEb1nY) is popular if you have some prior language modeling context.
+For some context on this repository, GPT, and language modeling it might be helpful to explore transformer architectures and creative text generation. ATOM-GPT focuses specifically on metal music content generation and provides specialized tools for training on metal lyrics datasets.
 
-For more questions/discussions feel free to stop by **#nanoGPT** on Discord:
-
-[![](https://dcbadge.vercel.app/api/server/3zy8kqD9Cp?compact=true&style=flat)](https://discord.gg/3zy8kqD9Cp)
+For questions or discussions about ATOM-GPT, feel free to open issues on the GitHub repository.
 
 ## acknowledgements
 
-All nanoGPT experiments are powered by GPUs on [Lambda labs](https://lambdalabs.com), my favorite Cloud GPU provider. Thank you Lambda labs for sponsoring nanoGPT!
+ATOM-GPT is built upon the foundation of transformer architectures and benefits from the open-source community's contributions to deep learning and natural language processing.
 
 ## Dataset Information
 
@@ -302,9 +300,9 @@ All nanoGPT experiments are powered by GPUs on [Lambda labs](https://lambdalabs.
 - **Vocabulary size**: 905 unique characters (including special symbols)
 - **Training tokens**: 18.4 million
 - **Validation tokens**: 2.0 million
-- **Languages**: Primarily English with some international metal bands
+- **Languages**: Primarily English with some international content
 
-The dataset includes comprehensive metal lyrics from DarkLyrics, covering various subgenres and spanning decades of metal music history.
+The dataset includes comprehensive metal lyrics from various sources, covering multiple metal genres and spanning different eras of metal music history.
 
 ### Training Configurations Available
 
