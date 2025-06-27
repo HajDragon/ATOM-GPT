@@ -2,25 +2,7 @@
 
 ![ATOM-GPT](assets/nanogpt.jpg)
 
-**A**dvanced **T**ransformer **O**ptimize**Step 3: Generate lyrics**
-```sh
-cd backend/training
-python sample.py --out_dir=out-darklyrics
-```
-
-This will generate new metal lyrics based on the patterns learned from your dataset.
-
-**Step 4: Interactive Chat (NEW!)**
-```sh
-cd backend/training
-python interactive_chat.py
-```
-
-This launches an interactive chat interface where you can have real-time conversations with your trained ATOM-GPT model! Features:
-- 🎤 Real-time chat with your metal lyrics AI
-- 🌡️ Adjustable temperature for creativity control
-- 🎯 Configurable response length
-- 🤘 Metal-themed interface with helpful commands*M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
+**A**dvanced **T**ransformer **O**ptimized for **M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
 
 ![repro124m](assets/gpt2_124M_loss.png)
 
@@ -109,10 +91,22 @@ This config is optimized for RTX 3050 GPUs (8GB VRAM) and will train a GPT model
 **Step 3: Generate lyrics**
 ```sh
 cd backend/training
-python sample.py --out_dir=../out-darklyrics
+python sample.py --out_dir=out-darklyrics
 ```
 
 This will generate new metal lyrics based on the patterns learned from your dataset.
+
+**Step 4: Interactive Chat (NEW!)**
+```sh
+cd backend/training
+python interactive_chat.py
+```
+
+This launches an interactive chat interface where you can have real-time conversations with your trained ATOM-GPT model! Features:
+- 🎤 Real-time chat with your metal lyrics AI
+- 🌡️ Adjustable temperature for creativity control
+- 🎯 Configurable response length
+- 🤘 Metal-themed interface with helpful commands
 
 ### Quick Test Run
 
@@ -354,10 +348,6 @@ For some context on this repository, GPT, and language modeling it might be help
 - Explore the [Interactive Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html) for workflow visualization
 
 For questions or discussions about ATOM-GPT, feel free to open issues on the GitHub repository.
-
-## acknowledgements
-
-ATOM-GPT is built upon the foundation of transformer architectures and benefits from the open-source community's contributions to deep learning and natural language processing.
 
 ## Dataset Information
 
