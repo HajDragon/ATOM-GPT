@@ -2,7 +2,25 @@
 
 ![ATOM-GPT](assets/nanogpt.jpg)
 
-**A**dvanced **T**ransformer **O**ptimized for **M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
+**A**dvanced **T**ransformer **O**ptimize**Step 3: Generate lyrics**
+```sh
+cd backend/training
+python sample.py --out_dir=out-darklyrics
+```
+
+This will generate new metal lyrics based on the patterns learned from your dataset.
+
+**Step 4: Interactive Chat (NEW!)**
+```sh
+cd backend/training
+python interactive_chat.py
+```
+
+This launches an interactive chat interface where you can have real-time conversations with your trained ATOM-GPT model! Features:
+- 🎤 Real-time chat with your metal lyrics AI
+- 🌡️ Adjustable temperature for creativity control
+- 🎯 Configurable response length
+- 🤘 Metal-themed interface with helpful commands*M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
 
 ![repro124m](assets/gpt2_124M_loss.png)
 
@@ -126,6 +144,38 @@ If you peek inside the config files, you'll see training parameters optimized fo
 - Training time: 4-8 hours on RTX 3050
 
 ## Advanced Usage
+
+### Interactive Chat Interface 🎤
+
+ATOM-GPT includes a real-time chat interface for interactive conversations with your trained model:
+
+```sh
+cd backend/training
+python interactive_chat.py
+```
+
+**Chat Features:**
+- 🎸 **Real-time conversation** with your metal lyrics AI
+- 🌡️ **Temperature control** (`/temp 0.8`) - Lower for focused, higher for creative responses
+- 🎯 **Token control** (`/tokens 150`) - Adjust response length
+- 🤘 **Metal-themed prompts** - Try "darkness", "fire", "steel", "death"
+- 💬 **Command system** - Type `/help` for all available commands
+
+**Example Chat Session:**
+```
+🎤 You: darkness and fire
+🤖 ATOM-GPT: The flames consume the night sky
+              Burning through the endless void
+              Where shadows dance with ancient might
+              And darkness never is destroyed
+
+🎤 You: /temp 1.2
+🌡️ Temperature set to 1.2
+
+🎤 You: steel and thunder
+🤖 ATOM-GPT: Steel hammers crash like thunder's call
+              Forging paths through molten stone...
+```
 
 ### Custom Dataset Training
 
@@ -264,6 +314,17 @@ python sample.py \
 ```
 
 If you'd like to sample from a model you trained, use the `--out_dir` to point the code appropriately. You can also prompt the model with some text from a file, e.g. ```python sample.py --start=FILE:prompt.txt```.
+
+### Interactive Sampling
+
+For a more engaging experience, use the interactive chat interface:
+
+```sh
+cd backend/training
+python interactive_chat.py
+```
+
+This provides real-time conversation capabilities with your trained ATOM-GPT model, complete with adjustable settings and a metal-themed interface.
 
 ## efficiency notes
 
