@@ -149,24 +149,18 @@ If you run into CUDA out-of-memory errors:
 This generates a few samples, for example:
 
 ```
-ANGELO:
-And cowards it be strawn to my bed,
-And thrust the gates of my threats,
-Because he that ale away, and hang'd
-An one with him.
-
-DUKE VINCENTIO:
-I thank your eyes against it.
-
-DUKE VINCENTIO:
-Then will answer him to save the malm:
-And what have you tyrannous shall do this?
-
-DUKE VINCENTIO:
-If you have done evils of all disposition
-To end his power, the day of thrust for a common men
-That I leave, to fight with over-liking
-Hasting in a roseman.
+I close my eyes, and let the demons in
+To clear my mind from the things that I have seen
+On my knees, Father - please leave the crowd
+And let me out
+I lost my way so many times before
+That I forgot just what I'm living for
+I'm in the dark, light's so hard to find...
+So now I'm leaving it all behind - I'm changing skin
+My angry tears like raindrops in the dust
+I realized there's no one you can trust
+Shot in the back sinking in the night
+That's how I'm leaving it all behind - I'm changing skin
 ```
 
 lol  `¯\_(ツ)_/¯`. Not bad for a character-level model after 3 minutes of training on a GPU. Better results are quite likely obtainable by instead finetuning a pretrained GPT-2 model on this dataset (see finetuning section later).
