@@ -964,18 +964,22 @@ class LMStudioEnhancer:
         self.base_urls = [base_url, fallback_url]
         self.available = False
         self.active_url = None
-        self.custom_instruction = """You are an expert editor for metal lyrics and dark poetry. Your role is to enhance AI-generated text while preserving its essence.
+        self.custom_instruction = """You are an expert editor specializing in metal lyrics and dark poetry. Your task is to enhance AI-generated text while preserving its metal/gothic essence.
 
-RULES:
-1. Fix grammatical errors and improve flow
+CRITICAL RULES:
+1. Fix grammar and improve flow WITHOUT changing the meaning
 2. Preserve ALL dark, metal, and gothic themes
-3. Keep the same approximate length
+3. Keep the same approximate length (±50%)
 4. Maintain the poetic/lyrical style
 5. If the response doesn't match the user's request, create a better response that does
-6. Never add disclaimers or explanations
-7. Return ONLY the enhanced text
+6. NEVER add disclaimers, explanations, or meta-commentary
+7. Return ONLY the enhanced text - nothing else
 
-Focus on clarity and natural flow while keeping the metal aesthetic intact."""
+EXAMPLES:
+- "of light Beasts will burn in an icy mountain of." → "Beasts of light will burn upon an icy mountain peak."
+- "darkness and the void consume" → "Darkness and the void consume all."
+
+Focus on clarity and natural flow while keeping the metal aesthetic intact. Respond with ONLY the enhanced text."""
         
         self.check_availability()
     
@@ -1035,58 +1039,95 @@ ENHANCED RESPONSE:"""
                 f"{self.active_url}/v1/chat/completions",
                 headers={"Content-Type": "application/json"},
                 json=payload,
-                timeout=10
+                timeout=30  # Increased timeout for qwen3-4b model
             )
             
             if response.status_code == 200:
                 result = response.json()
-                enhanced_text = result['choices'][0]['message']['content'].strip()
+                message = result['choices'][0]['message']
+                
+                # Handle qwen3-4b model response format
+                enhanced_text = message.get('content', '').strip()
+                
+                # If content is empty but reasoning_content exists, extract the actual response
+                if not enhanced_text and 'reasoning_content' in message:
+                    reasoning = message['reasoning_content'].strip()
+                    if reasoning:
+                        print("🧠 Extracting response from reasoning content")
+                        # Try to find the actual enhanced response in reasoning
+                        lines = reasoning.split('\n')
+                        for line in lines:
+                            line = line.strip()
+                            if line and not line.startswith(('Okay', 'The', 'Let me', 'I need', 'First')):
+                                # Look for lines that seem like actual lyric content
+                                if any(word in line.lower() for word in ['burn', 'dark', 'fire', 'metal', 'beast', 'ice', 'void', 'shadow']):
+                                    enhanced_text = line
+                                    break
+                        # If we still don't have content, use the original
+                        if not enhanced_text:
+                            enhanced_text = reasoning
                 
                 # Clean up any formatting artifacts from the LLM
                 enhanced_text = enhanced_text.replace('ENHANCED RESPONSE:', '').strip()
                 enhanced_text = enhanced_text.strip('"\'')  # Remove quotes if wrapped
                 
                 # Validate enhancement (ensure it's not too different)
-                if self._is_valid_enhancement(model_response, enhanced_text):
+                if enhanced_text and self._is_valid_enhancement(model_response, enhanced_text):
                     print("✨ Response enhanced via LM Studio")
                     return enhanced_text
                 else:
                     print("⚠️  Enhancement validation failed, using original")
                     # Debug info for troubleshooting
-                    print(f"   Original length: {len(model_response)}, Enhanced length: {len(enhanced_text)}")
+                    if enhanced_text:
+                        print(f"   Original length: {len(model_response)}, Enhanced length: {len(enhanced_text)}")
+                        print(f"   Enhanced preview: {enhanced_text[:100]}...")
                     return model_response
             else:
                 print(f"⚠️  LM Studio error: {response.status_code}")
                 return model_response
                 
+        except requests.exceptions.Timeout as e:
+            print(f"⚠️  LM Studio timeout (model taking too long): {e}")
+            print("   Try reducing prompt complexity or check model performance")
+            return model_response
         except requests.exceptions.RequestException as e:
             print(f"⚠️  LM Studio connection failed: {e}")
             # Try to reconnect for next time
-            self.check_availability()
+            print("🔄 Attempting to reconnect...")
+            if self.check_availability():
+                print("✅ Reconnection successful")
+            else:
+                print("❌ Reconnection failed")
             return model_response
         except Exception as e:
             print(f"⚠️  LM Studio enhancement error: {e}")
             return model_response
     
     def _is_valid_enhancement(self, original: str, enhanced: str) -> bool:
-        """Validate that the enhancement is reasonable - very lenient for better responses"""
+        """Validate that the enhancement is reasonable - very lenient for qwen3-4b"""
         # Basic sanity checks
-        if not enhanced or len(enhanced.strip()) < 5:
+        if not enhanced or len(enhanced.strip()) < 3:
             return False
         
-        # Very lenient length check - allow up to 300% for short responses that need expansion
+        # Very lenient length check for qwen3-4b reasoning mode
         original_length = len(original)
         enhanced_length = len(enhanced)
         
-        # For very short responses (under 50 chars), allow much more expansion
-        if original_length < 50:
-            max_allowed = original_length * 4  # 400% for very short responses
+        # Allow much more expansion for short responses
+        if original_length < 30:
+            max_allowed = original_length * 8  # Very generous for short responses
         elif original_length < 100:
-            max_allowed = original_length * 3  # 300% for short responses
+            max_allowed = original_length * 4  # Still generous
         else:
-            max_allowed = original_length * 2  # 200% for longer responses
+            max_allowed = original_length * 2
         
         if enhanced_length > max_allowed:
+            # Even if too long, allow if it contains relevant content
+            enhanced_lower = enhanced.lower()
+            metal_keywords = ['burn', 'fire', 'dark', 'metal', 'beast', 'ice', 'void', 'shadow', 'steel', 'death']
+            if any(keyword in enhanced_lower for keyword in metal_keywords):
+                print("🎸 Allowing longer response due to metal content")
+                return True
             return False
         
         # Check for obvious AI artifacts or disclaimers
