@@ -1021,13 +1021,13 @@ Guidelines:
 ENHANCED RESPONSE:"""
 
             payload = {
-                "model": "meta-llama-3.1-8b-instruct",  # Default model, can be configurable
+                "model": "qwen3-4b",  # Updated to use qwen3-4b model
                 "messages": [
                     {"role": "system", "content": self.custom_instruction},
                     {"role": "user", "content": enhancement_prompt}
                 ],
-                "temperature": 0.3,  # Lower temperature for more consistent enhancement
-                "max_tokens": len(model_response.split()) + 50,  # Slightly more tokens for clarity
+                "temperature": 0.7,  # Adjusted temperature to match curl example
+                "max_tokens": -1,  # Use -1 for no limit as in curl example
                 "stream": False
             }
             
