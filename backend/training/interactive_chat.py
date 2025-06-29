@@ -1025,13 +1025,13 @@ Guidelines:
 ENHANCED RESPONSE:"""
 
             payload = {
-                "model": "qwen3-4b",  # Updated to use qwen3-4b model
+                "model": "phi-2",  # Updated to use phi-2 model
                 "messages": [
                     {"role": "system", "content": self.custom_instruction},
                     {"role": "user", "content": enhancement_prompt}
                 ],
-                "temperature": 0.7,  # Adjusted temperature to match curl example
-                "max_tokens": -1,  # Use -1 for no limit as in curl example
+                "temperature": 0.7,  # Adjusted temperature for phi-2
+                "max_tokens": -1,  # Use -1 for no limit
                 "stream": False
             }
             
@@ -1039,33 +1039,20 @@ ENHANCED RESPONSE:"""
                 f"{self.active_url}/v1/chat/completions",
                 headers={"Content-Type": "application/json"},
                 json=payload,
-                timeout=30  # Increased timeout for qwen3-4b model
+                timeout=20  # Reduced timeout for phi-2 model (faster than qwen3-4b)
             )
             
             if response.status_code == 200:
                 result = response.json()
                 message = result['choices'][0]['message']
                 
-                # Handle qwen3-4b model response format
+                # Handle phi-2 model response format
                 enhanced_text = message.get('content', '').strip()
                 
-                # If content is empty but reasoning_content exists, extract the actual response
-                if not enhanced_text and 'reasoning_content' in message:
-                    reasoning = message['reasoning_content'].strip()
-                    if reasoning:
-                        print("🧠 Extracting response from reasoning content")
-                        # Try to find the actual enhanced response in reasoning
-                        lines = reasoning.split('\n')
-                        for line in lines:
-                            line = line.strip()
-                            if line and not line.startswith(('Okay', 'The', 'Let me', 'I need', 'First')):
-                                # Look for lines that seem like actual lyric content
-                                if any(word in line.lower() for word in ['burn', 'dark', 'fire', 'metal', 'beast', 'ice', 'void', 'shadow']):
-                                    enhanced_text = line
-                                    break
-                        # If we still don't have content, use the original
-                        if not enhanced_text:
-                            enhanced_text = reasoning
+                # phi-2 doesn't use reasoning mode, so content should be direct
+                if not enhanced_text:
+                    print("⚠️  Empty response from phi-2 model")
+                    return model_response
                 
                 # Clean up any formatting artifacts from the LLM
                 enhanced_text = enhanced_text.replace('ENHANCED RESPONSE:', '').strip()
@@ -1104,25 +1091,25 @@ ENHANCED RESPONSE:"""
             return model_response
     
     def _is_valid_enhancement(self, original: str, enhanced: str) -> bool:
-        """Validate that the enhancement is reasonable - very lenient for qwen3-4b"""
+        """Validate that the enhancement is reasonable - optimized for phi-2"""
         # Basic sanity checks
         if not enhanced or len(enhanced.strip()) < 3:
             return False
         
-        # Very lenient length check for qwen3-4b reasoning mode
+        # Reasonable length check for phi-2 model
         original_length = len(original)
         enhanced_length = len(enhanced)
         
-        # Allow much more expansion for short responses
-        if original_length < 30:
-            max_allowed = original_length * 8  # Very generous for short responses
+        # phi-2 tends to be more concise, so more moderate length limits
+        if original_length < 50:
+            max_allowed = original_length * 4  # 4x for short responses
         elif original_length < 100:
-            max_allowed = original_length * 4  # Still generous
+            max_allowed = original_length * 3  # 3x for medium responses
         else:
-            max_allowed = original_length * 2
+            max_allowed = original_length * 2  # 2x for longer responses
         
         if enhanced_length > max_allowed:
-            # Even if too long, allow if it contains relevant content
+            # Allow if it contains relevant metal content
             enhanced_lower = enhanced.lower()
             metal_keywords = ['burn', 'fire', 'dark', 'metal', 'beast', 'ice', 'void', 'shadow', 'steel', 'death']
             if any(keyword in enhanced_lower for keyword in metal_keywords):

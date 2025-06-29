@@ -554,7 +554,7 @@ ATOM-GPT now supports automatic response enhancement through [LM Studio](https:/
 
 **Setup:**
 1. **Install LM Studio** from https://lmstudio.ai/
-2. **Load a model** (recommended: `qwen3-4b`)
+2. **Load a model** (recommended: `phi-2`)
 3. **Start the server** on port 8080 (default)
 4. **Run ATOM-GPT** - it will automatically detect and connect
 
@@ -579,6 +579,6 @@ Enhanced: "In darkness it beckons, an eternal void that I've seen, yet cannot co
 
 **Configuration:**
 - Default URLs: `http://localhost:8080`, `http://192.168.56.1:8080`
-- Requires `qwen3-4b` or compatible model
+- Requires `phi-2` or compatible model
 - Enhancement adds ~500ms per response when active
 - Falls back to direct output if LM Studio unavailable
