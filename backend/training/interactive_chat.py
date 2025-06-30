@@ -452,7 +452,7 @@ def generate_sentence_completion(prompt, max_tokens=40, temp=0.8, top_p_val=0.9,
             completion = ensure_complete_words(completion)
             
             # Enhance with LM Studio if available
-            completion = lm_enhancer.enhance_response(prompt, completion)
+            completion = lm_enhancer.enhance_response(prompt, completion, max_tokens)
             
             # Ensure it ends with proper punctuation for sentence completion
             if completion and not completion.endswith(('.', '!', '?', ',', ';', ':')):
@@ -627,7 +627,7 @@ def generate_response(prompt, max_tokens=max_new_tokens, temp=temperature, top_p
                 response = ensure_complete_words(response)  # Ensure complete words
                 
                 # Enhance with LM Studio if available
-                response = lm_enhancer.enhance_response(prompt, response)
+                response = lm_enhancer.enhance_response(prompt, response, max_tokens)
                 
                 # If we got a reasonable response, return it (less strict on first attempt)
                 if attempt == 0 and response and len(response.split()) >= 3:
@@ -1001,59 +1001,52 @@ Focus on clarity and natural flow while keeping the metal aesthetic intact. Resp
         print("⚠️  LM Studio not available - using direct output")
         return False
     
-    def enhance_response(self, user_prompt: str, model_response: str) -> str:
-        """Enhance the model response using LM Studio for clarity"""
+    def enhance_response(self, user_prompt: str, model_response: str, max_tokens: int = 100) -> str:
+        """Enhance the model response using LM Studio for clarity with token limit"""
         if not self.available:
             return model_response
         
         try:
-            # Prepare the enhancement request with better context
-            enhancement_prompt = f"""USER PROMPT: "{user_prompt}"
+            # Create a concise, efficient enhancement prompt
+            enhancement_prompt = f"""Fix grammar and improve flow while preserving dark/metal themes:
 
-ORIGINAL AI RESPONSE: "{model_response}"
+User: "{user_prompt}"
+AI: "{model_response}"
 
-TASK: Please enhance the AI response above for clarity and flow while preserving the dark/metal aesthetic. 
-
-Guidelines:
-- Fix grammar and awkward phrasing
-- Improve readability and flow
-- Keep the same meaning and themes
-- Maintain metal/dark imagery
-- If the response seems unrelated to the user prompt, create a better response that fits the prompt while staying metal/dark themed
-- Return ONLY the enhanced response, no explanations
-
-ENHANCED RESPONSE:"""
+Enhanced:"""
 
             payload = {
-                "model": "phi-2",  # Updated to use phi-2 model
+                "model": "qwen3-4b",
                 "messages": [
-                    {"role": "system", "content": self.custom_instruction},
+                    {"role": "system", "content": "You are a concise editor for metal lyrics. Fix grammar and improve flow while preserving all dark/metal themes. Respond with ONLY the enhanced text, no explanations."},
                     {"role": "user", "content": enhancement_prompt}
                 ],
-                "temperature": 0.7,  # Adjusted temperature for phi-2
-                "max_tokens": -1,  # Use -1 for no limit
+                "temperature": 0.3,  # Lower temperature for consistent editing
+                "max_tokens": max_tokens,  # Match the chat token setting
                 "stream": False
             }
             
-            print("🤔 LM Studio thinking... (this may take up to 60 seconds)")
             response = requests.post(
                 f"{self.active_url}/v1/chat/completions",
                 headers={"Content-Type": "application/json"},
                 json=payload,
-                timeout=60  # Increased timeout to give phi-2 model time to think
+                timeout=30  # Increased timeout for qwen3-4b model
             )
             
             if response.status_code == 200:
                 result = response.json()
                 message = result['choices'][0]['message']
                 
-                # Handle phi-2 model response format
+                # Handle qwen3-4b model response format
                 enhanced_text = message.get('content', '').strip()
                 
-                # phi-2 doesn't use reasoning mode, so content should be direct
-                if not enhanced_text:
-                    print("⚠️  Empty response from phi-2 model")
-                    return model_response
+                # If content is empty but reasoning_content exists, use that instead
+                if not enhanced_text and 'reasoning_content' in message:
+                    reasoning = message['reasoning_content'].strip()
+                    # Extract the actual enhancement from reasoning if possible
+                    if reasoning:
+                        print("⚠️  Using reasoning content as fallback")
+                        enhanced_text = reasoning
                 
                 # Clean up any formatting artifacts from the LLM
                 enhanced_text = enhanced_text.replace('ENHANCED RESPONSE:', '').strip()
@@ -1075,8 +1068,8 @@ ENHANCED RESPONSE:"""
                 return model_response
                 
         except requests.exceptions.Timeout as e:
-            print(f"⏳ LM Studio timeout (60s): Model is taking time to think deeply")
-            print("   This is normal for complex enhancements - using original response")
+            print(f"⚠️  LM Studio timeout (model taking too long): {e}")
+            print("   Try reducing prompt complexity or check model performance")
             return model_response
         except requests.exceptions.RequestException as e:
             print(f"⚠️  LM Studio connection failed: {e}")
@@ -1092,65 +1085,34 @@ ENHANCED RESPONSE:"""
             return model_response
     
     def _is_valid_enhancement(self, original: str, enhanced: str) -> bool:
-        """Validate that the enhancement is reasonable - optimized for phi-2"""
+        """Validate that the enhancement is reasonable - very lenient for better responses"""
         # Basic sanity checks
-        if not enhanced or len(enhanced.strip()) < 3:
+        if not enhanced or len(enhanced.strip()) < 5:
             return False
         
-        # Reasonable length check for phi-2 model
+        # Very lenient length check - allow up to 300% for short responses that need expansion
         original_length = len(original)
         enhanced_length = len(enhanced)
         
-        # phi-2 tends to be more concise, so more moderate length limits
+        # For very short responses (under 50 chars), allow much more expansion
         if original_length < 50:
-            max_allowed = original_length * 4  # 4x for short responses
-        elif original_length < 100:
-            max_allowed = original_length * 3  # 3x for medium responses
-        else:
-            max_allowed = original_length * 2  # 2x for longer responses
+            max_allowed = original_length * 4  # 400% for very short responses
+        # Simple length check - allow reasonable expansion
+        max_allowed = max(original_length * 2, 100)  # At least 100 chars allowed
         
         if enhanced_length > max_allowed:
-            # Allow if it contains relevant metal content
-            enhanced_lower = enhanced.lower()
-            metal_keywords = ['burn', 'fire', 'dark', 'metal', 'beast', 'ice', 'void', 'shadow', 'steel', 'death']
-            if any(keyword in enhanced_lower for keyword in metal_keywords):
-                print("🎸 Allowing longer response due to metal content")
-                return True
             return False
         
-        # Check for obvious AI artifacts or disclaimers
+        # Quick check for obvious AI artifacts
         enhanced_lower = enhanced.lower()
-        ai_artifacts = [
-            "i cannot", "i can't", "as an ai", "i'm not able", 
-            "i don't have", "i cannot provide", "disclaimer",
-            "note that", "please note", "it's important to note",
-            "i apologize", "sorry, but"
-        ]
+        ai_artifacts = ["i cannot", "as an ai", "disclaimer", "sorry, but"]
         
         if any(artifact in enhanced_lower for artifact in ai_artifacts):
             return False
         
-        # Check that it's still in English and coherent
+        # Basic coherence check
         words = enhanced.split()
-        if len(words) < 3:
-            return False
-        
-        # Check for reasonable word-to-character ratio (avoid gibberish)
-        avg_word_length = len(enhanced) / len(words) if words else 0
-        if avg_word_length > 20 or avg_word_length < 1.5:  # Very lenient range
-            return False
-        
-        # Check for repetitive patterns that indicate poor generation
-        words_lower = [w.lower() for w in words]
-        if len(words) >= 6:
-            # Look for obvious repetition
-            for i in range(len(words_lower) - 2):
-                if words_lower[i] == words_lower[i+1] == words_lower[i+2]:
-                    return False  # Three identical words in a row
-        
-        # Very basic coherence check - avoid responses that are just random characters
-        alpha_chars = sum(1 for c in enhanced if c.isalpha())
-        if alpha_chars < len(enhanced) * 0.7:  # At least 70% alphabetic characters
+        if len(words) < 2:
             return False
         
         return True
