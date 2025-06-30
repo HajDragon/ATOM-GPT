@@ -1035,11 +1035,12 @@ ENHANCED RESPONSE:"""
                 "stream": False
             }
             
+            print("🤔 LM Studio thinking... (this may take up to 60 seconds)")
             response = requests.post(
                 f"{self.active_url}/v1/chat/completions",
                 headers={"Content-Type": "application/json"},
                 json=payload,
-                timeout=20  # Reduced timeout for phi-2 model (faster than qwen3-4b)
+                timeout=60  # Increased timeout to give phi-2 model time to think
             )
             
             if response.status_code == 200:
@@ -1074,8 +1075,8 @@ ENHANCED RESPONSE:"""
                 return model_response
                 
         except requests.exceptions.Timeout as e:
-            print(f"⚠️  LM Studio timeout (model taking too long): {e}")
-            print("   Try reducing prompt complexity or check model performance")
+            print(f"⏳ LM Studio timeout (60s): Model is taking time to think deeply")
+            print("   This is normal for complex enhancements - using original response")
             return model_response
         except requests.exceptions.RequestException as e:
             print(f"⚠️  LM Studio connection failed: {e}")
