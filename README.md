@@ -4,6 +4,8 @@
 
 **A**dvanced **T**ransformer **O**ptimized for **M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
 
+This project includes both a **command-line training interface** and a **modern web application** with ChatGPT-style UI for interactive metal lyrics generation.
+
 ![repro124m](assets/gpt2_124M_loss.png)
 
 ## Project Structure
@@ -12,14 +14,22 @@ This project is organized with a clean separation between backend and frontend c
 
 ```
 ├── backend/          # All backend components (training, models, data)
+│   ├── api/          # Flask API server for web application
 │   ├── config/       # Training configurations
 │   ├── data/         # Datasets and preprocessing
 │   ├── models/       # Model definitions
 │   ├── scrapers/     # Data collection tools
 │   ├── training/     # Training and sampling scripts
 │   ├── utils/        # Utility functions
-|   |__ Visualization/# Project documentation and visualizations
+|   |__ visualization/# Project documentation and visualizations
 │   └── notebooks/    # Analysis notebooks
+├── frontend/         # React web application
+│   ├── public/       # Static assets
+│   ├── src/          # React components and logic
+│   │   ├── components/   # UI components (chat, completion interfaces)
+│   │   ├── utils/        # Frontend utilities
+│   │   └── App.tsx       # Main application
+│   └── package.json  # Frontend dependencies
 ├── assets/           # Images and static files
 ├── LICENSE
 └── README.md
@@ -27,12 +37,19 @@ This project is organized with a clean separation between backend and frontend c
 
 See [backend/README.md](backend/README.md) for detailed backend documentation.
 
+## Architecture & Visualization
+
+For a comprehensive understanding of the ATOM-GPT architecture and workflow:
+
+- **📊 [ATOM GPT Flowchart](backend/visualization/ATOM%20GPT%20FLOWCHART%20.pdf)** - Hand drawn representation of the training pipeline and model architecture
+- **🔄 [Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html)** - Interactive flowchart showing the complete data processing and training workflow
+
 Because the code is optimized for metal lyrics generation, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints for different metal genres and styles.
 
 ## install
 
 ```
-pip install torch numpy transformers datasets tiktoken wandb tqdm
+pip install torch numpy transformers datasets tiktoken wandb tqdm flask flask-cors requests
 ```
 
 Dependencies:
@@ -44,8 +61,120 @@ Dependencies:
 -  `tiktoken` for OpenAI's fast BPE code <3
 -  `wandb` for optional logging <3
 -  `tqdm` for progress bars <3
+-  `flask` & `flask-cors` for web API server <3
+-  `requests` for HTTP requests <3
+
+For the React frontend:
+```bash
+cd frontend
+npm install
+```
+
+## Running the Web Application
+
+ATOM-GPT includes a modern web application with ChatGPT-style interface for interactive metal lyrics generation. The app features both conversational chat and text completion modes.
+
+### Prerequisites
+
+1. **Train or download a model** (see training sections below)
+2. **Install dependencies** (see install section above)
+3. **Node.js** (for React frontend)
+
+### Quick Start - Web App
+
+**Step 1: Start the Backend API Server**
+```bash
+cd backend/api
+python server.py
+```
+
+The backend will:
+- Load your trained model (from `backend/training/out-darklyrics/`)
+- Start Flask API server on `http://localhost:8000`
+- Check for LM Studio connection (optional enhancement)
+- Display model information and GPU status
+
+**Step 2: Start the Frontend React App**
+```bash
+cd frontend
+npm start
+```
+
+The frontend will:
+- Start React development server on `http://localhost:3000`
+- Connect to backend API automatically
+- Open in your default browser
+
+**Step 3: Use the Application**
+
+Navigate to:
+- **Chat Interface**: `http://localhost:3000/` - Conversational AI with chat history
+- **Completion Interface**: `http://localhost:3000/completion` - Text completion with metal examples
+
+### Web Application Features
+
+🎸 **Chat Interface**
+- ChatGPT-style conversation interface
+- Persistent chat history with localStorage
+- Sidebar for managing conversations
+- Real-time typing effects and progress indicators
+- Copy-to-clipboard functionality
+- Keyboard shortcuts (Ctrl+Enter to send)
+
+🔥 **Completion Interface** 
+- Text completion with metal lyric examples
+- Pre-filled metal-themed prompts
+- Interactive example buttons
+- Progress bars and typing animations
+- Adjustable generation settings
+
+⚙️ **Settings & Controls**
+- Temperature, max tokens, top-p, repetition penalty
+- LM Studio enhancement toggle
+- Real-time model and system information
+- GPU status and parameter count display
+
+🎨 **Modern UI**
+- Dark theme optimized for metal aesthetics
+- Responsive design for all screen sizes
+- Smooth animations and transitions
+- Custom scrollbars and visual effects
+
+### Optional: LM Studio Enhancement
+
+For higher quality outputs, you can optionally connect LM Studio:
+
+1. **Install LM Studio** from [lmstudio.ai](https://lmstudio.ai)
+2. **Load a model** in LM Studio (e.g., CodeLlama, Mistral, etc.)
+3. **Start the server** in LM Studio on default port (1234)
+4. **Enable enhancement** in the web app settings
+
+When LM Studio is connected, the app will show "✨ Enhanced" badges and produce higher quality responses.
+
+### Troubleshooting Web App
+
+**Backend Issues:**
+- Ensure model is trained and checkpoint exists in `backend/training/out-darklyrics/`
+- Check Python dependencies are installed
+- Verify no port conflicts on 8000
+
+**Frontend Issues:**
+- Run `npm install` in frontend directory
+- Check Node.js version (16+ recommended)
+- Verify no port conflicts on 3000
+
+**Connection Issues:**
+- Check backend is running on port 8000
+- Ensure CORS is properly configured
+- Check browser console for error messages
 
 ## quick start
+
+### Option 1: Web Application (Recommended)
+
+The easiest way to get started is with the web application. See the "Running the Web Application" section above for detailed instructions.
+
+### Option 2: Command-Line Training & Sampling
 
 ### Training on Metal Lyrics Dataset
 
@@ -287,11 +416,34 @@ Note that by default this repo uses PyTorch 2.0 (i.e. `torch.compile`). This is 
 
 For some context on this repository, GPT, and language modeling it might be helpful to explore transformer architectures and creative text generation. ATOM-GPT focuses specifically on metal music content generation and provides specialized tools for training on metal lyrics datasets.
 
+📋 **Documentation & Visualizations:**
+- Review the [ATOM GPT Flowchart](backend/visualization/ATOM%20GPT%20FLOWCHART%20.pdf) for initial overview
+- Explore the [Interactive Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html) for workflow visualization
+
 For questions or discussions about ATOM-GPT, feel free to open issues on the GitHub repository.
 
 ## acknowledgements
 
 ATOM-GPT is built upon the foundation of transformer architectures and benefits from the open-source community's contributions to deep learning and natural language processing.
+
+## System Requirements
+
+### Hardware
+- **GPU**: RTX 3050 8GB or better (recommended)
+- **RAM**: 8GB+ system memory  
+- **Storage**: 5GB+ free space
+- **CPU**: Multi-core processor for React development
+
+### Software
+- **Python**: 3.8+ with PyTorch
+- **Node.js**: 16+ for React frontend
+- **Operating System**: Windows, macOS, or Linux
+
+### Performance Notes
+- **RTX 3050**: Optimal performance, 4-8 hour training
+- **Higher-end GPUs**: Faster training, can increase model size
+- **CPU only**: Much slower but functional with reduced model size
+- **Apple Silicon**: Use `--device=mps` for GPU acceleration
 
 ## Dataset Information
 
@@ -313,3 +465,18 @@ The dataset includes comprehensive metal lyrics from various sources, covering m
 2. **`train_darklyrics.py`** - Full training (4-8 hours on RTX 3050)  
    - 8 layers, 512 embedding, 10000 iterations
    - Production-quality model
+
+### Output Quality & Enhancement
+
+The web application includes intelligent quality control:
+
+**Base Model Output**: Direct generation from your trained ATOM-GPT model
+**Enhanced Output**: Optional LM Studio integration for higher quality
+**Smart Fallbacks**: Curated metal-themed completions when model output is low quality
+
+The system automatically detects poor quality generations and provides metal-themed fallback completions to ensure users always receive coherent, thematic responses.
+
+**Quality Indicators:**
+- ✨ **Enhanced by LM Studio** - High-quality output from connected LM Studio model
+- **Standard Output** - Direct generation from your trained model
+- **Fallback Completion** - Curated thematic response when needed
