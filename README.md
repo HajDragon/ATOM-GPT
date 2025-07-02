@@ -1,12 +1,10 @@
-# AT**A**dvanced **T**ransformer **O**ptimized for **M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
-
-🚀 **Enhanced with adaptive sampling, sentence completion mode, and quality improvements delivering 85% contextual accuracy and 80% command-following precision!**GPT
+# ATOM-GPT
 
 ![ATOM-GPT](assets/nanogpt.jpg)
 
 **A**dvanced **T**ransformer **O**ptimized for **M**usical **GPT** - A specialized repository for training and finetuning GPT models on metal lyrics. Built for creative text generation with a focus on metal music content, this implementation provides optimized configurations for various GPU setups and comprehensive tools for metal lyrics-based AI training.
 
-🚀 **Enhanced with adaptive sampling and quality improvements delivering 85% contextual accuracy and 80% command-following precision!**
+This project includes both a **command-line training interface** and a **modern web application** with ChatGPT-style UI for interactive metal lyrics generation.
 
 ![repro124m](assets/gpt2_124M_loss.png)
 
@@ -16,6 +14,7 @@ This project is organized with a clean separation between backend and frontend c
 
 ```
 ├── backend/          # All backend components (training, models, data)
+│   ├── api/          # Flask API server for web application
 │   ├── config/       # Training configurations
 │   ├── data/         # Datasets and preprocessing
 │   ├── models/       # Model definitions
@@ -24,6 +23,13 @@ This project is organized with a clean separation between backend and frontend c
 │   ├── utils/        # Utility functions
 |   |__ visualization/# Project documentation and visualizations
 │   └── notebooks/    # Analysis notebooks
+├── frontend/         # React web application
+│   ├── public/       # Static assets
+│   ├── src/          # React components and logic
+│   │   ├── components/   # UI components (chat, completion interfaces)
+│   │   ├── utils/        # Frontend utilities
+│   │   └── App.tsx       # Main application
+│   └── package.json  # Frontend dependencies
 ├── assets/           # Images and static files
 ├── LICENSE
 └── README.md
@@ -37,14 +43,13 @@ For a comprehensive understanding of the ATOM-GPT architecture and workflow:
 
 - **📊 [ATOM GPT Flowchart](backend/visualization/ATOM%20GPT%20FLOWCHART%20.pdf)** - Hand drawn representation of the training pipeline and model architecture
 - **🔄 [Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html)** - Interactive flowchart showing the complete data processing and training workflow
-- **🎯 [Interactive Chat Pipeline](backend/visualization/interactive_chat_pipeline.html)** - Interactive visualization of the 8-stage text processing and filtering pipeline used in the chat interface
 
 Because the code is optimized for metal lyrics generation, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints for different metal genres and styles.
 
 ## install
 
 ```
-pip install torch numpy transformers datasets tiktoken wandb tqdm
+pip install torch numpy transformers datasets tiktoken wandb tqdm flask flask-cors requests
 ```
 
 Dependencies:
@@ -56,8 +61,120 @@ Dependencies:
 -  `tiktoken` for OpenAI's fast BPE code <3
 -  `wandb` for optional logging <3
 -  `tqdm` for progress bars <3
+-  `flask` & `flask-cors` for web API server <3
+-  `requests` for HTTP requests <3
+
+For the React frontend:
+```bash
+cd frontend
+npm install
+```
+
+## Running the Web Application
+
+ATOM-GPT includes a modern web application with ChatGPT-style interface for interactive metal lyrics generation. The app features both conversational chat and text completion modes.
+
+### Prerequisites
+
+1. **Train or download a model** (see training sections below)
+2. **Install dependencies** (see install section above)
+3. **Node.js** (for React frontend)
+
+### Quick Start - Web App
+
+**Step 1: Start the Backend API Server**
+```bash
+cd backend/api
+python server.py
+```
+
+The backend will:
+- Load your trained model (from `backend/training/out-darklyrics/`)
+- Start Flask API server on `http://localhost:8000`
+- Check for LM Studio connection (optional enhancement)
+- Display model information and GPU status
+
+**Step 2: Start the Frontend React App**
+```bash
+cd frontend
+npm start
+```
+
+The frontend will:
+- Start React development server on `http://localhost:3000`
+- Connect to backend API automatically
+- Open in your default browser
+
+**Step 3: Use the Application**
+
+Navigate to:
+- **Chat Interface**: `http://localhost:3000/` - Conversational AI with chat history
+- **Completion Interface**: `http://localhost:3000/completion` - Text completion with metal examples
+
+### Web Application Features
+
+🎸 **Chat Interface**
+- ChatGPT-style conversation interface
+- Persistent chat history with localStorage
+- Sidebar for managing conversations
+- Real-time typing effects and progress indicators
+- Copy-to-clipboard functionality
+- Keyboard shortcuts (Ctrl+Enter to send)
+
+🔥 **Completion Interface** 
+- Text completion with metal lyric examples
+- Pre-filled metal-themed prompts
+- Interactive example buttons
+- Progress bars and typing animations
+- Adjustable generation settings
+
+⚙️ **Settings & Controls**
+- Temperature, max tokens, top-p, repetition penalty
+- LM Studio enhancement toggle
+- Real-time model and system information
+- GPU status and parameter count display
+
+🎨 **Modern UI**
+- Dark theme optimized for metal aesthetics
+- Responsive design for all screen sizes
+- Smooth animations and transitions
+- Custom scrollbars and visual effects
+
+### Optional: LM Studio Enhancement
+
+For higher quality outputs, you can optionally connect LM Studio:
+
+1. **Install LM Studio** from [lmstudio.ai](https://lmstudio.ai)
+2. **Load a model** in LM Studio (e.g., CodeLlama, Mistral, etc.)
+3. **Start the server** in LM Studio on default port (1234)
+4. **Enable enhancement** in the web app settings
+
+When LM Studio is connected, the app will show "✨ Enhanced" badges and produce higher quality responses.
+
+### Troubleshooting Web App
+
+**Backend Issues:**
+- Ensure model is trained and checkpoint exists in `backend/training/out-darklyrics/`
+- Check Python dependencies are installed
+- Verify no port conflicts on 8000
+
+**Frontend Issues:**
+- Run `npm install` in frontend directory
+- Check Node.js version (16+ recommended)
+- Verify no port conflicts on 3000
+
+**Connection Issues:**
+- Check backend is running on port 8000
+- Ensure CORS is properly configured
+- Check browser console for error messages
 
 ## quick start
+
+### Option 1: Web Application (Recommended)
+
+The easiest way to get started is with the web application. See the "Running the Web Application" section above for detailed instructions.
+
+### Option 2: Command-Line Training & Sampling
 
 ### Training on Metal Lyrics Dataset
 
@@ -96,26 +213,10 @@ This config is optimized for RTX 3050 GPUs (8GB VRAM) and will train a GPT model
 **Step 3: Generate lyrics**
 ```sh
 cd backend/training
-python sample.py --out_dir=out-darklyrics
+python sample.py --out_dir=../out-darklyrics
 ```
 
 This will generate new metal lyrics based on the patterns learned from your dataset.
-
-**Step 4: Interactive Chat (ENHANCED!)**
-```sh
-cd backend/training
-python interactive_chat.py
-```
-
-This launches an interactive chat interface where you can have real-time conversations with your trained ATOM-GPT model! Features:
-- 🎤 **Real-time chat** with your metal lyrics AI
-- ✏️ **Sentence completion mode** - Focused continuations for unfinished sentences
-- 🧠 **Adaptive sampling** - automatically adjusts to prompt type (creative, thematic, questions, commands)
-- 🌡️ **Adjustable temperature** for creativity control
-- 🎯 **Configurable response length**
-- 🤘 **Metal-themed interface** with helpful commands
-- 🔍 **Enhanced quality filtering** and artifact removal
-- 🎭 **Mode switching** between chat and completion modes
 
 ### Quick Test Run
 
@@ -148,97 +249,6 @@ If you peek inside the config files, you'll see training parameters optimized fo
 
 ## Advanced Usage
 
-### Interactive Chat Interface 🎤
-
-ATOM-GPT includes a real-time chat interface for interactive conversations with your trained model:
-
-```sh
-cd backend/training
-python interactive_chat.py
-```
-
-**Chat Features:**
-- 🎸 **Real-time conversation** with your metal lyrics AI
-- ✏️ **Sentence completion mode** (`/complete`) - Focused continuations for unfinished sentences
-- 🎤 **Normal chat mode** (`/chat`) - Full conversational responses
-- ✨ **LM Studio Enhancement** - Automatic response enhancement for clarity while preserving metal themes
-- 🧠 **Adaptive sampling** - automatically adjusts to prompt type (creative, thematic, questions, commands)
-- 🌡️ **Temperature control** (`/temp 0.8`) - Lower for focused, higher for creative responses
-- 🎯 **Token control** (`/tokens 150`) - Adjust response length
-- 🤘 **Metal-themed prompts** - Try "darkness", "fire", "steel", "death"
-- 💬 **Command system** - Type `/help` for all available commands
-- 🔍 **Enhanced quality filtering** and artifact removal
-- 🔗 **LM Studio Integration** - `/lmstudio` commands for connection management
-
-**Performance Improvements with Enhanced Configs:**
-- ✅ **85% contextual accuracy** (vs 60% with basic config)
-- ✅ **80% command following accuracy** (vs 50% with basic config)  
-- ✅ **95% artifact-free responses** (vs 70% with basic config)
-- ✅ **90% repetition-free responses** (vs 75% with basic config)
-
-**Example Chat Session:**
-```
-🎤 You: darkness and fire
-🤖 ATOM-GPT: The flames consume the night sky
-              Burning through the endless void
-              Where shadows dance with ancient might
-              And darkness never is destroyed
-
-🎤 You: /complete
-✏️ Switched to sentence completion mode!
-
-✏️ Complete: When the rainfall of tears drop
-✏️ Completion: When the rainfall of tears drop like molten steel upon the cursed earth.
-
-✏️ Complete: In the darkness of the void
-✏️ Completion: In the darkness of the void where ancient spirits dwell in eternal torment.
-
-🎤 You: /chat
-🎤 Switched to normal chat mode!
-
-🎤 You: /temp 1.2
-🌡️ Temperature set to 1.2
-
-🎤 You: steel and thunder
-🤖 ATOM-GPT: Steel hammers crash like thunder's call
-              Forging paths through molten stone...
-```
-
-### Sentence Completion Mode ✏️
-
-ATOM-GPT now includes a specialized sentence completion mode for focused text continuations:
-
-**Usage:**
-```sh
-# Start interactive chat
-cd backend/training  
-python interactive_chat.py
-
-# Switch to completion mode
-/complete
-
-# Enter incomplete sentences
-When the rainfall of tears drop...
-In the darkness of the void...
-Fire burns through ancient steel...
-```
-
-**Features:**
-- 🎯 **Focused completions** - Generates natural continuations for incomplete sentences
-- 🎨 **Metal-themed continuations** - Optimized for dark, atmospheric completions
-- ⚡ **Quality scoring** - Automatically selects the best completion from multiple attempts
-- 🎭 **Mode switching** - Seamlessly switch between chat and completion modes
-- 🛠️ **Smart parameters** - Automatically adjusted sampling for optimal completion quality
-
-**Example Completions:**
-```
-✏️ Complete: When the rainfall of tears drop
-✏️ Completion: When the rainfall of tears drop like molten steel upon the cursed earth.
-
-✏️ Complete: In the shadows of eternity
-✏️ Completion: In the shadows of eternity where forgotten souls writhe in endless torment.
-```
-
 ### Custom Dataset Training
 
 To train on your own text dataset:
@@ -258,103 +268,27 @@ If you run into CUDA out-of-memory errors:
 3. **Reduce model size**: Lower `n_layer`, `n_head`, or `n_embd`
 4. **Increase gradient_accumulation_steps**: Compensates for smaller batch_size
 
-### Performance Statistics & Quality Improvements
-
-ATOM-GPT's enhanced configurations deliver significant improvements in response quality and accuracy:
-
-#### Response Quality Metrics
-
-| Metric | Basic Config | Enhanced Config | Improvement |
-|--------|-------------|-----------------|-------------|
-| **Contextual Accuracy** | 60% | 85% | +25% |
-| **Command Following** | 50% | 80% | +30% |
-| **Artifact-Free Responses** | 70% | 95% | +25% |
-| **Repetition-Free** | 75% | 90% | +15% |
-| **Natural Language Flow** | 65% | 88% | +23% |
-
-#### Sentence Completion Quality
-
-The new sentence completion mode delivers focused, high-quality continuations:
-
-| Metric | Performance |
-|--------|------------|
-| **Completion Coherence** | 91% |
-| **Theme Consistency** | 87% |
-| **Natural Flow** | 89% |
-| **Metal Atmosphere** | 92% |
-| **Grammar Accuracy** | 94% |
-
-**Sample Completion Quality:**
-- Average completion length: 8-15 words
-- Successful completions: 85%
-- User satisfaction: High for creative writing
-
-#### Adaptive Sampling Performance
-
-The enhanced chat interface automatically optimizes for different prompt types:
-
-**Creative Prompts** ("write a verse about darkness")
-- Detection accuracy: 92%
-- Response relevance: 87% 
-- Creative quality: 84%
-
-**Question Prompts** ("what is death metal?")
-- Detection accuracy: 89%
-- Factual accuracy: 82%
-- Conciseness: 91%
-
-**Command Prompts** ("describe the sound of thunder")
-- Detection accuracy: 85%
-- Task completion: 79%
-- Detail level: 88%
-
-**Thematic Prompts** ("fire", "darkness", "steel")
-- Detection accuracy: 94%
-- Theme consistency: 89%
-- Lyrical quality: 86%
-
-#### Before vs After Examples
-
-**Creative Prompt: "write a verse about darkness"**
-```
-Before: ] I am the shadow of the night The cold winds collide
-After:  In the depths where shadows reign
-        Ancient whispers call my name
-        Through the void of endless night
-        Where no soul can find the light
-```
-
-**Question: "what is black metal?"**
-```
-Before: ] [Lyrics not available...] Band: DARKTHRONE
-After:  Black metal is characterized by fast tempos,
-        shrieking vocals, and atmospheric darkness
-        that emerged from Norway in the early 1990s
-```
-
-**Command: "describe fire"**
-```
-Before: ] I drink from the ground and in the clouds
-After:  Flames dance with ancient fury,
-        consuming all in their path,
-        bringing both destruction and renewal
-```
-
 This generates a few samples, for example:
 
 ```
-I close my eyes, and let the demons in
-To clear my mind from the things that I have seen
-On my knees, Father - please leave the crowd
-And let me out
-I lost my way so many times before
-That I forgot just what I'm living for
-I'm in the dark, light's so hard to find...
-So now I'm leaving it all behind - I'm changing skin
-My angry tears like raindrops in the dust
-I realized there's no one you can trust
-Shot in the back sinking in the night
-That's how I'm leaving it all behind - I'm changing skin
+ANGELO:
+And cowards it be strawn to my bed,
+And thrust the gates of my threats,
+Because he that ale away, and hang'd
+An one with him.
+
+DUKE VINCENTIO:
+I thank your eyes against it.
+
+DUKE VINCENTIO:
+Then will answer him to save the malm:
+And what have you tyrannous shall do this?
+
+DUKE VINCENTIO:
+If you have done evils of all disposition
+To end his power, the day of thrust for a common men
+That I leave, to fight with over-liking
+Hasting in a roseman.
 ```
 
 lol  `¯\_(ツ)_/¯`. Not bad for a character-level model after 3 minutes of training on a GPU. Better results are quite likely obtainable by instead finetuning a pretrained GPT-2 model on this dataset (see finetuning section later).
@@ -459,17 +393,6 @@ python sample.py \
 
 If you'd like to sample from a model you trained, use the `--out_dir` to point the code appropriately. You can also prompt the model with some text from a file, e.g. ```python sample.py --start=FILE:prompt.txt```.
 
-### Interactive Sampling
-
-For a more engaging experience, use the interactive chat interface:
-
-```sh
-cd backend/training
-python interactive_chat.py
-```
-
-This provides real-time conversation capabilities with your trained ATOM-GPT model, complete with adjustable settings and a metal-themed interface.
-
 ## efficiency notes
 
 For simple model benchmarking and profiling, `bench.py` might be useful. It's identical to what happens in the meat of the training loop of `train.py`, but omits much of the other complexities.
@@ -499,6 +422,29 @@ For some context on this repository, GPT, and language modeling it might be help
 
 For questions or discussions about ATOM-GPT, feel free to open issues on the GitHub repository.
 
+## acknowledgements
+
+ATOM-GPT is built upon the foundation of transformer architectures and benefits from the open-source community's contributions to deep learning and natural language processing.
+
+## System Requirements
+
+### Hardware
+- **GPU**: RTX 3050 8GB or better (recommended)
+- **RAM**: 8GB+ system memory  
+- **Storage**: 5GB+ free space
+- **CPU**: Multi-core processor for React development
+
+### Software
+- **Python**: 3.8+ with PyTorch
+- **Node.js**: 16+ for React frontend
+- **Operating System**: Windows, macOS, or Linux
+
+### Performance Notes
+- **RTX 3050**: Optimal performance, 4-8 hour training
+- **Higher-end GPUs**: Faster training, can increase model size
+- **CPU only**: Much slower but functional with reduced model size
+- **Apple Silicon**: Use `--device=mps` for GPU acceleration
+
 ## Dataset Information
 
 ### Metal Lyrics Dataset Statistics
@@ -510,21 +456,6 @@ For questions or discussions about ATOM-GPT, feel free to open issues on the Git
 
 The dataset includes comprehensive metal lyrics from various sources, covering multiple metal genres and spanning different eras of metal music history.
 
-### Dataset Quality Improvements
-
-The enhanced configurations include advanced data processing that improves model training:
-
-**Artifact Removal Rate**: 95% (vs 70% with basic processing)
-- Band/album metadata: 98% removed
-- Attribution text: 97% removed  
-- Formatting artifacts: 94% removed
-- Numeric noise: 92% removed
-
-**Content Quality**: 
-- Coherent lyrical passages: 89% (vs 72% basic)
-- Complete sentences: 94% (vs 81% basic)
-- Thematic consistency: 87% (vs 69% basic)
-
 ### Training Configurations Available
 
 1. **`test_darklyrics.py`** - Quick test (5-10 minutes on RTX 3050)
@@ -535,50 +466,17 @@ The enhanced configurations include advanced data processing that improves model
    - 8 layers, 512 embedding, 10000 iterations
    - Production-quality model
 
-3. **`train_darklyrics_enhanced.py`** - Enhanced training (6-10 hours on RTX 3050) 🚀
-   - 10 layers, 768 embedding, 15000 iterations
-   - **Best accuracy and context understanding**
-   - **+25% better contextual accuracy**
-   - **+30% better command following**
+### Output Quality & Enhancement
 
-4. **`train_darklyrics_finetune.py`** - GPT-2 fine-tuning (30-60 minutes on RTX 3050) ⚡
-   - Starts from pretrained GPT-2, 1024 context length
-   - **Quick deployment with strong language skills**
-   - **85% accuracy in 1/10th the training time**
+The web application includes intelligent quality control:
 
-📋 **Enhanced Configuration Guide**: See [backend/config/ENHANCED_CONFIG_GUIDE.md](backend/config/ENHANCED_CONFIG_GUIDE.md) for detailed setup and optimization instructions.
+**Base Model Output**: Direct generation from your trained ATOM-GPT model
+**Enhanced Output**: Optional LM Studio integration for higher quality
+**Smart Fallbacks**: Curated metal-themed completions when model output is low quality
 
-### LM Studio Enhancement (Optional)
+The system automatically detects poor quality generations and provides metal-themed fallback completions to ensure users always receive coherent, thematic responses.
 
-ATOM-GPT now supports automatic response enhancement through [LM Studio](https://lmstudio.ai/) integration. This feature improves response clarity while preserving metal themes and is completely optional.
-
-**Setup:**
-1. **Install LM Studio** from https://lmstudio.ai/
-2. **Load a model** (recommended: `phi-2`)
-3. **Start the server** on port 8080 (default)
-4. **Run ATOM-GPT** - it will automatically detect and connect
-
-**Features:**
-- ✨ **Automatic enhancement** - All responses are improved for clarity
-- 🛡️ **Theme preservation** - Metal/dark themes are maintained
-- 🔧 **Custom instructions** - Customize enhancement behavior
-- 🔄 **Graceful fallback** - Works perfectly without LM Studio
-- 📊 **Real-time validation** - Ensures enhanced responses meet quality standards
-
-**Commands:**
-- `/lmstudio` - Show connection status
-- `/lmstudio connect` - Reconnect to LM Studio
-- `/lmstudio instruction <text>` - Set custom enhancement instructions
-- `/enhance` - Check enhancement status
-
-**Example Enhancement:**
-```
-Original: "ng at me I've seen it, but why. There comes a lonely."
-Enhanced: "In darkness it beckons, an eternal void that I've seen, yet cannot comprehend. A lonely presence stirs within me."
-```
-
-**Configuration:**
-- Default URLs: `http://localhost:8080`, `http://192.168.56.1:8080`
-- Requires `phi-2` or compatible model
-- Enhancement adds ~500ms per response when active
-- Falls back to direct output if LM Studio unavailable
+**Quality Indicators:**
+- ✨ **Enhanced by LM Studio** - High-quality output from connected LM Studio model
+- **Standard Output** - Direct generation from your trained model
+- **Fallback Completion** - Curated thematic response when needed

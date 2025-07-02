@@ -295,6 +295,9 @@ def is_quality_response(text):
 # Configuration
 init_from = 'resume' # either 'resume' (from an out_dir) or a gpt2 variant (e.g. 'gpt2-xl')
 out_dir = 'out-darklyrics' # ignored if init_from is not 'resume'
+# Convert to absolute path relative to this script's directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+out_dir = os.path.join(script_dir, out_dir)
 start = "" # or "<|endoftext|>" or etc. Can also specify a file, use as: "FILE:prompt.txt"
 num_samples = 1 # number of samples to draw
 max_new_tokens = 60 # number of new tokens generated in each sample (reduced further for better quality)
@@ -306,7 +309,11 @@ seed = 1337
 device = 'cuda' # examples: 'cpu', 'cuda', 'cuda:0', 'cuda:1', etc.
 dtype = 'bfloat16' if torch.cuda.is_available() and torch.cuda.is_bf16_supported() else 'float16' # 'float32' or 'bfloat16' or 'float16'
 compile = False # use PyTorch 2.0 to compile the model to be faster
-exec(open('configurator.py').read()) # overrides from command line or config file
+# Find and execute configurator.py from utils
+script_dir = os.path.dirname(os.path.abspath(__file__))
+configurator_path = os.path.join(script_dir, '..', 'utils', 'configurator.py')
+if os.path.exists(configurator_path):
+    exec(open(configurator_path).read()) # overrides from command line or config file
 # -----------------------------------------------------------------------------
 
 torch.manual_seed(seed)
@@ -365,7 +372,7 @@ def generate_sentence_completion(prompt, max_tokens=40, temp=0.8, top_p_val=0.9,
         with ctx:
             # For sentence completion, we want a focused, coherent continuation
             # Clean the prompt to ensure it ends properly for continuation
-            clean_prompt = prompt.strip()
+            clean_prompt = str(prompt).strip()  # Ensure it's a string
             if not clean_prompt.endswith((' ', ',', '...', '-')):
                 # Add a space if the prompt doesn't end with natural continuation markers
                 if not clean_prompt.endswith(('.', '!', '?')):
@@ -464,8 +471,21 @@ def generate_sentence_completion(prompt, max_tokens=40, temp=0.8, top_p_val=0.9,
             
             return completion
 
-def generate_response(prompt, max_tokens=max_new_tokens, temp=temperature, top_p_val=top_p, rep_penalty=repetition_penalty, max_retries=3):
-    """Generate a response from the model with quality filtering and retry logic"""
+def generate_response(prompt, max_tokens=max_new_tokens, temp=temperature, top_p_val=top_p, rep_penalty=repetition_penalty, max_retries=3, enhance=True):
+    """Generate a response from the model with quality filtering and retry logic
+    
+    Args:
+        prompt: The input prompt
+        max_tokens: Maximum tokens to generate
+        temp: Temperature for sampling
+        top_p_val: Top-p sampling threshold
+        rep_penalty: Repetition penalty
+        max_retries: Maximum number of retry attempts
+        enhance: Whether to use LM Studio enhancement if available
+    
+    Returns:
+        tuple: (response_text, was_enhanced)
+    """
     
     for attempt in range(max_retries):
         with torch.no_grad():
@@ -575,9 +595,7 @@ def generate_response(prompt, max_tokens=max_new_tokens, temp=temperature, top_p
                                         found_repetition = True
                                         break
                                 if found_repetition:
-                                    break
-                            if found_repetition:
-                                break  # Exit the main generation loop
+                                    break  # Exit the main generation loop
                     
                     # SMART STOPPING: Check if we're approaching token limit and stop at word boundaries
                     if token_idx >= max_tokens * 0.8:  # When we're 80% through the token limit
@@ -626,14 +644,19 @@ def generate_response(prompt, max_tokens=max_new_tokens, temp=temperature, top_p
                 response = filter_incomplete_sentences(response)
                 response = ensure_complete_words(response)  # Ensure complete words
                 
-                # Enhance with LM Studio if available
-                response = lm_enhancer.enhance_response(prompt, response, max_tokens)
+                # Enhance with LM Studio if available and requested
+                original_response = response
+                if enhance:
+                    enhanced_response, was_enhanced = lm_enhancer.enhance_response(prompt, response, max_tokens)
+                    response = enhanced_response
+                else:
+                    was_enhanced = False
                 
                 # If we got a reasonable response, return it (less strict on first attempt)
                 if attempt == 0 and response and len(response.split()) >= 3:
-                    return response
+                    return response, was_enhanced
                 elif is_quality_response(response):
-                    return response
+                    return response, was_enhanced
                 
                 # If this attempt failed, try again with different parameters
                 if attempt == 0:
@@ -644,7 +667,7 @@ def generate_response(prompt, max_tokens=max_new_tokens, temp=temperature, top_p
                     rep_penalty = min(rep_penalty * 1.2, 1.8)  # Further increase repetition penalty
     
     # If all attempts failed, return a fallback response
-    return "The shadows whisper of ancient metal, but the words are lost in the void..."
+    return "The shadows whisper of ancient metal, but the words are lost in the void...", False
 
 def print_banner():
     """Print the welcome banner"""
@@ -870,10 +893,36 @@ def interactive_chat():
                         new_instruction = user_input[len('/lmstudio instruction '):]
                         lm_enhancer.set_custom_instruction(new_instruction)
                         print("✅ Custom enhancement instruction updated!")
+                    elif user_input.startswith('/lmstudio test'):
+                        print("🧪 Testing LM Studio relevance checking...")
+                        
+                        # Test 1: Relevant response (just grammar fix)
+                        print("\n📝 Test 1 - Grammar Fix:")
+                        test_response1 = lm_enhancer.enhance_response("darkness", "the darkness consume all", 30)
+                        print(f"   User: 'darkness'")
+                        print(f"   Original: 'the darkness consume all'")
+                        print(f"   Enhanced: '{test_response1}'")
+                        print(f"   Relevant: {lm_enhancer._is_response_relevant('darkness', 'the darkness consume all')}")
+                        
+                        # Test 2: Irrelevant response (should create new response)
+                        print("\n📝 Test 2 - Relevance Fix:")
+                        test_response2 = lm_enhancer.enhance_response("write about fire", "darkness and void eternal", 40)
+                        print(f"   User: 'write about fire'")
+                        print(f"   Original: 'darkness and void eternal'")
+                        print(f"   Enhanced: '{test_response2}'")
+                        print(f"   Relevant: {lm_enhancer._is_response_relevant('write about fire', 'darkness and void eternal')}")
+                        
+                        if (test_response1 != "the darkness consume all" or 
+                            test_response2 != "darkness and void eternal"):
+                            print("\n✅ Enhancement working!")
+                        else:
+                            print("\n⚠️  No enhancement occurred - checking connection...")
+                            lm_enhancer.check_availability()
                     else:
                         print("LM Studio commands:")
                         print("  /lmstudio - Show connection status")
                         print("  /lmstudio connect - Try to reconnect")
+                        print("  /lmstudio test - Test enhancement with sample text")
                         print("  /lmstudio instruction <text> - Set custom instruction")
                     continue
 
@@ -964,22 +1013,28 @@ class LMStudioEnhancer:
         self.base_urls = [base_url, fallback_url]
         self.available = False
         self.active_url = None
-        self.custom_instruction = """You are an expert editor specializing in metal lyrics and dark poetry. Your task is to enhance AI-generated text while preserving its metal/gothic essence.
+        self.custom_instruction = """You are an expert editor specializing in metal lyrics and dark poetry. Your task is to enhance AI-generated text while ensuring it properly addresses the user's request.
 
 CRITICAL RULES:
-1. Fix grammar and improve flow WITHOUT changing the meaning
-2. Preserve ALL dark, metal, and gothic themes
-3. Keep the same approximate length (±50%)
-4. Maintain the poetic/lyrical style
-5. If the response doesn't match the user's request, create a better response that does
-6. NEVER add disclaimers, explanations, or meta-commentary
-7. Return ONLY the enhanced text - nothing else
+1. Check if the AI response actually answers or relates to the user's prompt
+2. If the response is off-topic, create a new response that addresses the user's request while keeping metal/gothic themes
+3. If the response is relevant but poorly written, fix grammar and improve flow
+4. Preserve ALL dark, metal, and gothic themes and atmosphere
+5. Keep responses concise and focused (same approximate length ±50%)
+6. Maintain the poetic/lyrical style appropriate for metal content
+7. NEVER add disclaimers, explanations, or meta-commentary
+8. Return ONLY the enhanced/corrected text - nothing else
 
 EXAMPLES:
-- "of light Beasts will burn in an icy mountain of." → "Beasts of light will burn upon an icy mountain peak."
-- "darkness and the void consume" → "Darkness and the void consume all."
+User: "Write about fire"
+Bad AI: "darkness and the void consume all" 
+Enhanced: "Flames consume the earth, burning bright with ancient fury"
 
-Focus on clarity and natural flow while keeping the metal aesthetic intact. Respond with ONLY the enhanced text."""
+User: "Tell me about death"
+Bad AI: "of light Beasts will burn in an icy mountain of."
+Enhanced: "Death calls from shadowed realms, where souls find eternal rest"
+
+Focus on relevance first, then clarity and flow, while keeping the metal aesthetic intact."""
         
         self.check_availability()
     
@@ -987,102 +1042,193 @@ Focus on clarity and natural flow while keeping the metal aesthetic intact. Resp
         """Check if LM Studio is available on any of the configured URLs"""
         for url in self.base_urls:
             try:
-                response = requests.get(f"{url}/v1/models", timeout=2)
+                # Only check if the models endpoint responds - no actual completion test
+                response = requests.get(f"{url}/v1/models", timeout=3)
                 if response.status_code == 200:
                     self.available = True
                     self.active_url = url
-                    print(f"🔗 LM Studio connected at {url}")
+                    print(f"[LM Studio] Connected at {url}")
                     return True
+                else:
+                    print(f"[Warning] LM Studio at {url} not responding properly")
+                        
             except requests.exceptions.RequestException:
                 continue
         
         self.available = False
         self.active_url = None
-        print("⚠️  LM Studio not available - using direct output")
+        print("[Warning] LM Studio not available - using direct output")
         return False
     
-    def enhance_response(self, user_prompt: str, model_response: str, max_tokens: int = 100) -> str:
-        """Enhance the model response using LM Studio for clarity with token limit"""
-        if not self.available:
-            return model_response
+    def enhance_response(self, user_prompt: str, model_response: str, max_tokens: int = 100) -> tuple[str, bool]:
+        """
+        Enhance the model response using LM Studio for relevance and clarity.
         
-        try:
-            # Create a concise, efficient enhancement prompt
-            enhancement_prompt = f"""Fix grammar and improve flow while preserving dark/metal themes:
-
-User: "{user_prompt}"
-AI: "{model_response}"
-
-Enhanced:"""
-
-            payload = {
-                "model": "qwen3-4b",
-                "messages": [
-                    {"role": "system", "content": "You are a concise editor for metal lyrics. Fix grammar and improve flow while preserving all dark/metal themes. Respond with ONLY the enhanced text, no explanations."},
-                    {"role": "user", "content": enhancement_prompt}
-                ],
-                "temperature": 0.3,  # Lower temperature for consistent editing
-                "max_tokens": max_tokens,  # Match the chat token setting
-                "stream": False
-            }
-            
-            response = requests.post(
-                f"{self.active_url}/v1/chat/completions",
-                headers={"Content-Type": "application/json"},
-                json=payload,
-                timeout=30  # Increased timeout for qwen3-4b model
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                message = result['choices'][0]['message']
-                
-                # Handle qwen3-4b model response format
-                enhanced_text = message.get('content', '').strip()
-                
-                # If content is empty but reasoning_content exists, use that instead
-                if not enhanced_text and 'reasoning_content' in message:
-                    reasoning = message['reasoning_content'].strip()
-                    # Extract the actual enhancement from reasoning if possible
-                    if reasoning:
-                        print("⚠️  Using reasoning content as fallback")
-                        enhanced_text = reasoning
-                
-                # Clean up any formatting artifacts from the LLM
-                enhanced_text = enhanced_text.replace('ENHANCED RESPONSE:', '').strip()
-                enhanced_text = enhanced_text.strip('"\'')  # Remove quotes if wrapped
-                
-                # Validate enhancement (ensure it's not too different)
-                if enhanced_text and self._is_valid_enhancement(model_response, enhanced_text):
-                    print("✨ Response enhanced via LM Studio")
-                    return enhanced_text
+        Returns:
+            tuple: (enhanced_text, was_actually_enhanced)
+        
+        This function:
+        1. Checks if the ATOM-GPT response actually addresses the user's prompt
+        2. If irrelevant, creates a new metal-themed response that does address it
+        3. If relevant but poorly written, fixes grammar and flow
+        4. Preserves all dark/metal themes and atmosphere
+        """
+        # Do a real-time availability check before attempting to enhance
+        if not self.is_really_available():
+            return model_response, False
+        
+        original_response = model_response
+        
+        # Try different models in order of preference
+        models_to_try = ["phi-2", "meta-llama-3.1-8b-instruct", "qwen3-4b"]
+        
+        for model_name in models_to_try:
+            try:
+                # Create clean prompts without instruction words
+                if self._is_response_relevant(user_prompt, model_response):
+                    # Response is relevant, just fix grammar/flow by passing it directly
+                    enhancement_prompt = model_response
+                    system_message = "Fix grammar and improve flow. Keep the dark metal theme intact. Return only the improved text."
                 else:
-                    print("⚠️  Enhancement validation failed, using original")
-                    # Debug info for troubleshooting
-                    if enhanced_text:
-                        print(f"   Original length: {len(model_response)}, Enhanced length: {len(enhanced_text)}")
-                        print(f"   Enhanced preview: {enhanced_text[:100]}...")
-                    return model_response
-            else:
-                print(f"⚠️  LM Studio error: {response.status_code}")
-                return model_response
+                    # Response is not relevant, create new response about the topic
+                    enhancement_prompt = user_prompt
+                    system_message = "Create dark metal themed content. Be gothic and atmospheric. Return only the content."
+
+                payload = {
+                    "model": model_name,
+                    "messages": [
+                        {"role": "system", "content": system_message},
+                        {"role": "user", "content": enhancement_prompt}
+                    ],
+                    "temperature": 0.5,  # Lower for more focused responses
+                    "max_tokens": min(max_tokens // 2, 50),    # Use half of user's setting, max 50 for LM Studio
+                    "stream": False,
+                    "stop": ["\n", "User:", "System:", "Assistant:"]  # Reduced stop tokens for longer responses
+                }
                 
-        except requests.exceptions.Timeout as e:
-            print(f"⚠️  LM Studio timeout (model taking too long): {e}")
-            print("   Try reducing prompt complexity or check model performance")
-            return model_response
-        except requests.exceptions.RequestException as e:
-            print(f"⚠️  LM Studio connection failed: {e}")
-            # Try to reconnect for next time
-            print("🔄 Attempting to reconnect...")
-            if self.check_availability():
-                print("✅ Reconnection successful")
-            else:
-                print("❌ Reconnection failed")
-            return model_response
-        except Exception as e:
-            print(f"⚠️  LM Studio enhancement error: {e}")
-            return model_response
+                response = requests.post(
+                    f"{self.active_url}/v1/chat/completions",
+                    headers={"Content-Type": "application/json"},
+                    json=payload,
+                    timeout=10  # Shorter timeout for faster response
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Debug: Check the actual response structure
+                    if 'choices' in result and len(result['choices']) > 0:
+                        choice = result['choices'][0]
+                        message = choice.get('message', {})
+                        
+                        # Handle different response formats
+                        enhanced_text = message.get('content', '').strip()
+                        
+                        # If no content, try other fields
+                        if not enhanced_text:
+                            enhanced_text = choice.get('text', '').strip()
+                        
+                        # Clean up the response more aggressively
+                        if enhanced_text:
+                            # Remove any unwanted prefixes/suffixes
+                            enhanced_text = enhanced_text.strip()
+                            
+                            # Remove numbered lists, bullet points, and formatting
+                            import re
+                            enhanced_text = re.sub(r'^\d+\.\s*["\']?', '', enhanced_text)  # Remove "1. " or '1. "'
+                            enhanced_text = re.sub(r'^[\-\*]\s*["\']?', '', enhanced_text)  # Remove "- " or "* "
+                            
+                            # Take only the first meaningful line OR combine multiple lines if they're coherent
+                            lines = [line.strip() for line in enhanced_text.split('\n') if line.strip()]
+                            if lines:
+                                # If user wants longer responses (high max_tokens), combine multiple lines
+                                if max_tokens > 60 and len(lines) > 1:
+                                    # Combine up to 3 coherent lines for longer responses
+                                    combined_lines = []
+                                    for line in lines[:3]:
+                                        if len(' '.join(combined_lines + [line])) <= max_tokens * 6:  # Rough char limit
+                                            combined_lines.append(line)
+                                        else:
+                                            break
+                                    enhanced_text = ' '.join(combined_lines) if combined_lines else lines[0]
+                                else:
+                                    enhanced_text = lines[0]
+                            
+                            # Remove quotes, brackets, and extra punctuation from start/end
+                            enhanced_text = enhanced_text.strip('"\'()[]{}.,!?-*')
+                            
+                            # Remove any remaining colons or instruction-like formatting
+                            if ':' in enhanced_text:
+                                parts = enhanced_text.split(':')
+                                # Take the part after the colon if it looks like actual content
+                                if len(parts) > 1 and len(parts[1].strip()) > 3:
+                                    enhanced_text = parts[1].strip()
+                                else:
+                                    enhanced_text = parts[0].strip()
+                            
+                            # Final cleanup - ensure clean start
+                            enhanced_text = enhanced_text.strip()
+                            
+                            # Basic validation - more lenient for longer responses
+                            if (enhanced_text and 
+                                len(enhanced_text) > 3 and 
+                                len(enhanced_text) < max(max_tokens * 8, 300) and  # Allow longer based on token setting
+                                not any(phrase in enhanced_text.lower() for phrase in ['i cannot', 'as an ai', 'sorry', 'fix grammar', 'write metal', 'dark metal style'])):
+                                # Check if the enhancement actually changed something meaningful
+                                if enhanced_text.strip() != original_response.strip():
+                                    return enhanced_text, True  # Success with this model and actually enhanced
+                                else:
+                                    return original_response, False  # No meaningful change
+                
+                # If this model didn't work, try the next one
+                continue
+                    
+            except requests.exceptions.RequestException:
+                # Connection issue with this model, try next
+                continue
+            except Exception:
+                # Other error with this model, try next
+                continue
+        
+        # If all models failed, return original with no enhancement
+        return original_response, False
+    
+    def _is_response_relevant(self, user_prompt: str, model_response: str) -> bool:
+        """Check if the model response is relevant to the user prompt using keyword matching"""
+        # Convert to lowercase for comparison
+        prompt_lower = user_prompt.lower()
+        response_lower = model_response.lower()
+        
+        # Extract key topics from user prompt
+        topic_keywords = {
+            'fire': ['fire', 'flame', 'burn', 'blaze', 'inferno', 'heat'],
+            'death': ['death', 'die', 'dead', 'grave', 'tomb', 'corpse', 'soul'],
+            'darkness': ['dark', 'shadow', 'black', 'night', 'void'],
+            'metal': ['metal', 'steel', 'iron', 'forge', 'blade'],
+            'war': ['war', 'battle', 'fight', 'blood', 'sword', 'warrior'],
+            'love': ['love', 'heart', 'romantic', 'passion'],
+            'nature': ['forest', 'mountain', 'sea', 'sky', 'earth', 'wind'],
+            'power': ['power', 'strength', 'might', 'force', 'dominion']
+        }
+        
+        # Check if user is asking for specific content
+        for topic, keywords in topic_keywords.items():
+            if any(keyword in prompt_lower for keyword in keywords):
+                # User is asking about this topic
+                if any(keyword in response_lower for keyword in keywords):
+                    return True  # Response contains relevant keywords
+                else:
+                    return False  # Response doesn't match the topic
+        
+        # If no specific topic detected, check general relevance
+        # Look for common question words
+        question_words = ['what', 'how', 'why', 'when', 'where', 'who', 'write', 'tell', 'describe']
+        if any(word in prompt_lower for word in question_words):
+            # It's a question/request, so the response should be substantive
+            if len(model_response.split()) < 3:
+                return False  # Too short to be a proper answer
+        
+        return True  # Default to relevant if we can't determine otherwise
     
     def _is_valid_enhancement(self, original: str, enhanced: str) -> bool:
         """Validate that the enhancement is reasonable - very lenient for better responses"""
@@ -1120,15 +1266,40 @@ Enhanced:"""
     def set_custom_instruction(self, instruction: str):
         """Allow users to customize the enhancement instruction"""
         self.custom_instruction = instruction
-        print(f"📝 Custom instruction updated")
     
     def get_status(self) -> dict:
-        """Get current LM Studio status"""
+        """Get current LM Studio status with real-time check"""
+        # Re-check availability in real-time
+        self.check_availability()
         return {
             "available": self.available,
             "active_url": self.active_url,
             "instruction_length": len(self.custom_instruction)
         }
+    
+    def is_really_available(self) -> bool:
+        """Perform a quick real-time check to see if LM Studio is actually running"""
+        if not self.active_url:
+            # Only try to reconnect if we haven't checked recently
+            return False
+            
+        try:
+            # Quick test with very short timeout - NO completion test
+            response = requests.get(f"{self.active_url}/v1/models", timeout=1)
+            is_available = response.status_code == 200
+            
+            # Update internal state based on real check
+            if not is_available:
+                self.available = False
+                self.active_url = None
+                    
+            return is_available
+                
+        except requests.exceptions.RequestException:
+            # If we can't reach it, update our status
+            self.available = False
+            self.active_url = None
+            return False
 
 # Initialize the enhancer
 lm_enhancer = LMStudioEnhancer()
@@ -1141,3 +1312,308 @@ if __name__ == "__main__":
         sys.exit(1)
         
     interactive_chat()
+
+def generate_metal_completion(prompt, max_tokens=max_new_tokens, temp=0.9, enhance=True):
+    """Generate metal-themed lyrical completions with improved quality
+    
+    Args:
+        prompt: The input prompt (metal lyric beginning)
+        max_tokens: Maximum tokens to generate
+        temp: Temperature for sampling (higher for creativity)
+        enhance: Whether to use LM Studio enhancement
+    
+    Returns:
+        tuple: (completion_text, was_enhanced)
+    """
+    
+    # Metal-themed conditioning prefixes to improve output quality
+    metal_conditioners = [
+        "",  # Direct continuation
+        "Epic metal verse: ",
+        "Dark metal lyrics: ",
+        "Gothic poetry: ",
+        "Metal anthem: "
+    ]
+    
+    best_completion = ""
+    best_quality = 0
+    was_enhanced = False
+    
+    for attempt, conditioner in enumerate(metal_conditioners):
+        try:
+            with torch.no_grad():
+                with ctx:
+                    # Condition the prompt for metal lyrics
+                    conditioned_prompt = f"{conditioner}{prompt}".strip()
+                    
+                    # Encode the prompt
+                    start_ids = encode(conditioned_prompt)
+                    context = torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...]
+                    generated_tokens = []
+                    
+                    for token_idx in range(max_tokens):
+                        # Get logits from model
+                        idx_cond = context if context.size(1) <= model.config.block_size else context[:, -model.config.block_size:]
+                        logits, _ = model(idx_cond)
+                        logits = logits[:, -1, :]
+                        
+                        # Apply stronger repetition penalty for lyrics
+                        if len(generated_tokens) > 0:
+                            for token_id in set(generated_tokens[-30:]):
+                                if logits[0, token_id] > 0:
+                                    logits[0, token_id] /= 1.3  # Stronger penalty
+                                else:
+                                    logits[0, token_id] *= 1.3
+                        
+                        # Apply temperature
+                        logits = logits / temp
+                        
+                        # Apply top-k filtering (more restrictive for quality)
+                        if top_k is not None and top_k > 0:
+                            v, _ = torch.topk(logits, min(40, logits.size(-1)))  # More restrictive
+                            logits[logits < v[:, [-1]]] = -float('inf')
+                        
+                        # Apply nucleus sampling
+                        if top_p < 1.0:
+                            sorted_logits, sorted_indices = torch.sort(logits, descending=True, dim=-1)
+                            cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
+                            sorted_indices_to_remove = cumulative_probs > 0.85  # More restrictive
+                            sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+                            sorted_indices_to_remove[..., 0] = 0
+                            indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
+                            logits[indices_to_remove] = -float('inf')
+                        
+                        # Sample next token
+                        probs = F.softmax(logits, dim=-1)
+                        next_token = torch.multinomial(probs, num_samples=1)
+                        next_token_id = next_token[0, 0].item()
+                        generated_tokens.append(next_token_id)
+                        context = torch.cat((context, next_token), dim=1)
+                        
+                        # Check for stopping conditions
+                        decoded_token = decode([next_token_id])
+                        if decoded_token in ['\n\n', '<|endoftext|>']:
+                            break
+                        
+                        # Stop on repetition
+                        if len(generated_tokens) >= 4:
+                            if (generated_tokens[-4] == generated_tokens[-2] and 
+                                generated_tokens[-3] == generated_tokens[-1]):
+                                break
+                    
+                    # Decode the response
+                    response = decode(generated_tokens)
+                    
+                    # Remove conditioning prefix if it appears in output
+                    if conditioner and response.startswith(conditioner):
+                        response = response[len(conditioner):].strip()
+                    
+                    # Clean the response
+                    response = clean_dataset_artifacts(response)
+                    response = remove_repetitive_phrases(response)
+                    response = filter_incomplete_sentences(response)
+                    
+                    # Filter out meta-commentary and non-lyrical content
+                    response = filter_meta_commentary(response)
+                    
+                    # Quality scoring for metal lyrics
+                    quality_score = score_metal_lyric_quality(response)
+                    
+                    if quality_score > best_quality and len(response.split()) >= 8:
+                        best_completion = response
+                        best_quality = quality_score
+                        
+                        # If we get a really good score, we can break early
+                        if quality_score > 100:
+                            break
+                
+        except Exception as e:
+            print(f"Metal completion attempt {attempt} failed: {e}")
+            continue
+    
+    # Enhance with LM Studio if available and requested
+    if enhance and best_completion:
+        enhanced_response, was_enhanced = lm_enhancer.enhance_response(prompt, best_completion, max_tokens)
+        if enhanced_response and len(enhanced_response.strip()) > len(best_completion.strip()):
+            best_completion = enhanced_response
+    
+    return best_completion.strip(), was_enhanced
+
+def filter_meta_commentary(text):
+    """Remove meta-commentary and non-lyrical content"""
+    
+    # Remove common meta-commentary phrases
+    meta_phrases = [
+        "this is a great start", "let's make it", "this response is not acceptable",
+        "we can improve", "here's a better version", "let me try again",
+        "that's not quite right", "we need to", "i think", "perhaps we",
+        "maybe we should", "this could be better", "let me", "we should",
+        "i would", "you could", "it might", "it would be", "it seems",
+        "it appears", "it looks like", "i suggest", "my suggestion"
+    ]
+    
+    lines = text.split('\n')
+    filtered_lines = []
+    
+    for line in lines:
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+            
+        line_lower = line_clean.lower()
+        
+        # Skip lines with meta-commentary
+        contains_meta = any(phrase in line_lower for phrase in meta_phrases)
+        
+        # Skip lines that start with common meta patterns
+        meta_starters = ['this is', 'let\'s', 'we can', 'here\'s', 'that\'s', 'i think',
+                        'i would', 'you could', 'it might', 'it would', 'it seems',
+                        'perhaps', 'maybe', 'probably', 'i suggest']
+        starts_with_meta = any(line_lower.startswith(starter) for starter in meta_starters)
+        
+        # Skip very short fragments or single words
+        if len(line_clean.split()) < 3:
+            continue
+            
+        # Skip lines that look like incomplete sentences
+        if line_clean.endswith((' t.', ' s.', ' d.', ' n.', ' r.')):
+            continue
+            
+        if not contains_meta and not starts_with_meta:
+            filtered_lines.append(line_clean)
+    
+    result = ' '.join(filtered_lines).strip()
+    
+    # Additional cleaning for sentence fragments
+    sentences = result.split('.')
+    clean_sentences = []
+    
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if len(sentence.split()) >= 4:  # Must have at least 4 words
+            clean_sentences.append(sentence)
+    
+    if clean_sentences:
+        result = '. '.join(clean_sentences)
+        if not result.endswith('.'):
+            result += '.'
+    
+    return result
+
+def score_metal_lyric_quality(text):
+    """Score the quality of metal lyrics"""
+    if not text or len(text.strip()) < 10:
+        return 0
+    
+    score = 50  # Base score
+    text_lower = text.lower()
+    words = text_lower.split()
+    
+    # Positive indicators for metal lyrics
+    metal_words = [
+        'darkness', 'shadow', 'fire', 'flame', 'blood', 'steel', 'iron', 
+        'thunder', 'storm', 'lightning', 'death', 'doom', 'fate', 'hell',
+        'demon', 'beast', 'dragon', 'sword', 'blade', 'battle', 'war',
+        'night', 'moon', 'star', 'void', 'abyss', 'eternal', 'ancient',
+        'soul', 'spirit', 'power', 'rage', 'fury', 'wrath', 'vengeance',
+        'crown', 'throne', 'kingdom', 'empire', 'rise', 'fall', 'dawn',
+        'chains', 'gates', 'burning', 'crimson', 'frozen', 'cursed',
+        'unholy', 'sacred', 'divine', 'mortal', 'immortal', 'legend'
+    ]
+    
+    # Count metal-themed words (higher value)
+    word_count = sum(1 for word in metal_words if word in text_lower)
+    score += word_count * 15
+    
+    # Bonus for proper sentence structure
+    if text.count('.') >= 1:
+        score += 20
+    if text.count(',') >= 1:
+        score += 10
+    
+    # Penalty for common low-quality patterns
+    quality_killers = [
+        'thought and flesh', 'wind creatures', 'started from below',
+        'battle cries for what', 'purpose is in', 'break down t',
+        'towards their glory'
+    ]
+    
+    for killer in quality_killers:
+        if killer in text_lower:
+            score -= 100
+    
+    # Penalty for sentence fragments
+    if text.endswith((' t.', ' s.', ' d.', ' n.', ' r.')):
+        score -= 50
+    
+    # Penalty for very short output
+    if len(words) < 8:
+        score -= 30
+    
+    # Bonus for longer, more descriptive content
+    if len(words) > 15:
+        score += 20
+    
+    # Penalty for repetitive words
+    unique_words = len(set(words))
+    if len(words) > 5 and unique_words / len(words) < 0.7:
+        score -= 40
+    
+    # Big penalty for meta-commentary residue
+    meta_residue = ['this', 'let\'s', 'we', 'should', 'could', 'might', 'would']
+    meta_count = sum(1 for word in meta_residue if word in words)
+    score -= meta_count * 25
+    
+    return max(0, score)
+
+def clean_metal_completion(text, original_prompt):
+    """Enhanced cleaning specifically for metal lyric completions"""
+    
+    # Remove the original prompt if it appears at the start
+    if text.startswith(original_prompt):
+        text = text[len(original_prompt):].strip()
+    
+    # Remove common artifacts
+    artifacts = [
+        'spe.', 'bur.', 'ruin.', 'were bur.', 'cave, spe.', 
+        'Sea of winds blow through my cave',
+        'thought and flesh', 'wind creatures started from below',
+        'battle cries for what the purpose is'
+    ]
+    
+    for artifact in artifacts:
+        text = text.replace(artifact, '')
+    
+    # Split into sentences and clean
+    sentences = []
+    for sentence in text.split('.'):
+        sentence = sentence.strip()
+        
+        # Skip very short fragments
+        if len(sentence.split()) < 4:
+            continue
+            
+        # Skip sentences with common low-quality patterns
+        skip_patterns = ['thought and', 'wind creatures', 'sea of winds', 'were bur', 'cave, spe']
+        if any(pattern in sentence.lower() for pattern in skip_patterns):
+            continue
+            
+        # Clean up incomplete endings
+        if sentence.endswith((' t', ' s', ' d', ' n', ' r', ' spe', ' bur')):
+            # Try to find the last complete word
+            words = sentence.split()
+            if len(words) > 1:
+                sentence = ' '.join(words[:-1])
+        
+        if sentence and len(sentence.split()) >= 4:
+            sentences.append(sentence)
+    
+    if sentences:
+        result = '. '.join(sentences)
+        if not result.endswith('.'):
+            result += '.'
+        return result.strip()
+    
+    return text.strip()
+
+# ...existing code...
