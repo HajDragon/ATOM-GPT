@@ -1,11 +1,14 @@
-// Chat History Storage Utilities
+/**
+ * Chat Storage Utility
+ * Provides localStorage-based conversation management for backward compatibility
+ */
 
 export interface SavedMessage {
   id: string;
-  role: 'user' | 'assistant' | 'system';
   content: string;
-  timestamp: Date;
-  enhanced?: boolean;
+  role: 'user' | 'assistant';
+  timestamp: number;
+  isLoading?: boolean;
 }
 
 export interface SavedConversation {
@@ -16,91 +19,121 @@ export interface SavedConversation {
   lastModified: Date;
 }
 
-const STORAGE_KEY = 'atom-gpt-conversations';
-const MAX_CONVERSATIONS = 50; // Limit to prevent localStorage bloat
+export interface ChatConversation {
+  id: string;
+  title: string;
+  messages: SavedMessage[];
+  timestamp: number;
+  lastActivity: number;
+  isFromDatabase?: boolean;
+  needsSync?: boolean;
+}
 
-// Get all saved conversations
-export const getSavedConversations = (): SavedConversation[] => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-    
-    const conversations = JSON.parse(stored);
-    // Convert date strings back to Date objects
-    return conversations.map((conv: any) => ({
-      ...conv,
-      createdAt: new Date(conv.createdAt),
-      lastModified: new Date(conv.lastModified),
-      messages: conv.messages.map((msg: any) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      }))
-    }));
-  } catch (error) {
-    console.error('Error loading conversations:', error);
-    return [];
-  }
-};
+export interface CompletionHistory {
+  id: string;
+  prompt: string;
+  result: string;
+  timestamp: number;
+  settings: any;
+  enhanced?: boolean;
+  tokens?: number;
+  processingTime?: number;
+}
 
-// Save a conversation
-export const saveConversation = (conversation: SavedConversation): void => {
-  try {
-    const conversations = getSavedConversations();
-    
-    // Find existing conversation or add new one
-    const existingIndex = conversations.findIndex(c => c.id === conversation.id);
-    
-    if (existingIndex >= 0) {
-      conversations[existingIndex] = conversation;
-    } else {
-      conversations.unshift(conversation); // Add to beginning
+class ChatStorage {
+  private readonly CHAT_STORAGE_KEY = 'atom_gpt_conversations';
+  private readonly COMPLETION_STORAGE_KEY = 'atom_gpt_completions';
+
+  // Legacy compatibility method
+  saveConversationLegacy(conversation: SavedConversation): void {
+    try {
+      const conversations = this.getLegacyConversations();
+      const existingIndex = conversations.findIndex(c => c.id === conversation.id);
+      
+      if (existingIndex >= 0) {
+        conversations[existingIndex] = conversation;
+      } else {
+        conversations.unshift(conversation);
+      }
+      
+      const trimmed = conversations.slice(0, 50);
+      localStorage.setItem('atom_gpt_conversations_legacy', JSON.stringify(trimmed));
+    } catch (error) {
+      console.error('Error saving legacy conversation:', error);
     }
-    
-    // Limit the number of saved conversations
-    const trimmedConversations = conversations.slice(0, MAX_CONVERSATIONS);
-    
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmedConversations));
-  } catch (error) {
-    console.error('Error saving conversation:', error);
   }
+
+  private getLegacyConversations(): SavedConversation[] {
+    try {
+      const stored = localStorage.getItem('atom_gpt_conversations_legacy');
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error loading legacy conversations:', error);
+      return [];
+    }
+  }
+
+  getSavedConversations(): SavedConversation[] {
+    return this.getLegacyConversations();
+  }
+
+  deleteConversation(id: string): void {
+    try {
+      const conversations = this.getLegacyConversations();
+      const filtered = conversations.filter(c => c.id !== id);
+      localStorage.setItem('atom_gpt_conversations_legacy', JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  }
+
+  updateConversationTitle(id: string, title: string): void {
+    try {
+      const conversations = this.getLegacyConversations();
+      const conversation = conversations.find(c => c.id === id);
+      if (conversation) {
+        conversation.title = title;
+        localStorage.setItem('atom_gpt_conversations_legacy', JSON.stringify(conversations));
+      }
+    } catch (error) {
+      console.error('Error updating conversation title:', error);
+    }
+  }
+}
+
+export const chatStorage = new ChatStorage();
+export default chatStorage;
+
+// Legacy exports for backward compatibility  
+export const getSavedConversations = (): SavedConversation[] => {
+  return chatStorage.getSavedConversations();
 };
 
-// Delete a conversation
-export const deleteConversation = (conversationId: string): void => {
-  try {
-    const conversations = getSavedConversations();
-    const filtered = conversations.filter(c => c.id !== conversationId);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-  } catch (error) {
-    console.error('Error deleting conversation:', error);
-  }
+export const saveConversation = (conversation: SavedConversation): void => {
+  chatStorage.saveConversationLegacy(conversation);
 };
 
-// Generate a conversation title from the first user message
+export const deleteConversation = (id: string): void => {
+  chatStorage.deleteConversation(id);
+};
+
+export const updateConversationTitle = (id: string, title: string): void => {
+  chatStorage.updateConversationTitle(id, title);
+};
+
 export const generateConversationTitle = (firstMessage: string): string => {
-  const maxLength = 40;
-  let title = firstMessage.trim();
+  if (!firstMessage) return 'New Conversation';
   
-  // Remove common prefixes
-  title = title.replace(/^(tell me|what is|how do|can you|please)/i, '');
+  const trimmed = firstMessage.trim();
+  if (trimmed.length <= 50) return trimmed;
   
-  // Take first sentence or first 40 characters
-  const firstSentence = title.split(/[.!?]/)[0];
-  title = firstSentence.length > 0 ? firstSentence : title;
-  
-  if (title.length > maxLength) {
-    title = title.substring(0, maxLength - 3) + '...';
-  }
-  
-  return title || 'New Conversation';
+  return trimmed.slice(0, 47) + '...';
 };
 
-// Generate unique conversation ID
 export const generateConversationId = (): string => {
-  return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return 'conv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 };
 
-// Auto-save current conversation
 export const autoSaveConversation = (
   conversationId: string,
   messages: SavedMessage[],

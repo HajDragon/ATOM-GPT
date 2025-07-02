@@ -1,16 +1,22 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface StatusPanelProps {
   lmStudioStatus: 'connected' | 'disconnected' | 'checking';
   modelStatus: 'loaded' | 'loading' | 'error';
   onRefresh: () => void;
+  onShowAuth?: () => void;
+  onShowProfile?: () => void;
 }
 
 const StatusPanel: React.FC<StatusPanelProps> = ({
   lmStudioStatus,
   modelStatus,
-  onRefresh
+  onRefresh,
+  onShowAuth,
+  onShowProfile
 }) => {
+  const { user, isAuthenticated, logout } = useAuth();
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'connected':
@@ -46,6 +52,37 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
       >
         ↻
       </button>
+
+      {/* Authentication UI */}
+      <div className="auth-section">
+        {isAuthenticated ? (
+          <div className="user-section">
+            <button
+              onClick={onShowProfile}
+              className="user-button"
+              title="User Profile"
+            >
+              <div className="user-avatar">{user?.username?.[0]?.toUpperCase()}</div>
+              <span className="username">{user?.username}</span>
+            </button>
+            <button
+              onClick={logout}
+              className="logout-button"
+              title="Logout"
+            >
+              ⏻
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onShowAuth}
+            className="login-button"
+            title="Login / Register"
+          >
+            👤 Login
+          </button>
+        )}
+      </div>
     </div>
   );
 };

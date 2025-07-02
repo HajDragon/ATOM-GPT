@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// Unified backend on port 8000
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
@@ -9,6 +10,10 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Legacy exports for backward compatibility
+const authApi = api;
+const aiApi = api;
 
 // Request interceptor
 api.interceptors.request.use(
@@ -87,50 +92,51 @@ export interface StatusResponse {
 // API Methods
 export const chatAPI = {
   sendMessage: async (request: ChatRequest): Promise<ChatResponse> => {
-    const response = await api.post('/api/chat', request);
+    const response = await aiApi.post('/api/chat', request);
     return response.data;
   },
 
   getStatus: async (): Promise<StatusResponse> => {
-    const response = await api.get('/api/status');
+    const response = await aiApi.get('/api/status');
     return response.data;
   },
 };
 
 export const completionAPI = {
   generate: async (request: CompletionRequest): Promise<CompletionResponse> => {
-    const response = await api.post('/api/completion', request);
+    const response = await aiApi.post('/api/completion', request);
     return response.data;
   },
 };
 
 export const lmStudioAPI = {
   getStatus: async (): Promise<{ connected: boolean }> => {
-    const response = await api.get('/api/lm-studio/status');
+    const response = await aiApi.get('/api/lm-studio/status');
     return response.data;
   },
 
   reconnect: async (): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post('/api/lm-studio/reconnect');
+    const response = await aiApi.post('/api/lm-studio/reconnect');
     return response.data;
   },
 
   setInstruction: async (instruction: string): Promise<{ success: boolean }> => {
-    const response = await api.post('/api/lm-studio/instruction', { instruction });
+    const response = await aiApi.post('/api/lm-studio/instruction', { instruction });
     return response.data;
   },
 };
 
 export const modelAPI = {
   getStatus: async (): Promise<{ loaded: boolean; model_name?: string }> => {
-    const response = await api.get('/api/model/status');
+    const response = await aiApi.get('/api/model/status');
     return response.data;
   },
 
   loadModel: async (modelName: string): Promise<{ success: boolean; message: string }> => {
-    const response = await api.post('/api/model/load', { model_name: modelName });
+    const response = await aiApi.post('/api/model/load', { model_name: modelName });
     return response.data;
   },
 };
 
+export { authApi, aiApi, api };
 export default api;
