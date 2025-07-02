@@ -1,0 +1,10 @@
+Database for conversations
+
+perhaps auth
+
+
+Store settings so they wot  be reset everytime
+
+docker support
+
+UI improvment

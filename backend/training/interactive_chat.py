@@ -1009,8 +1009,15 @@ def interactive_chat():
 # LM Studio Integration for Response Enhancement
 
 class LMStudioEnhancer:
-    def __init__(self, base_url="http://localhost:8080", fallback_url="http://192.168.56.1:8080"):
-        self.base_urls = [base_url, fallback_url]
+    def __init__(self, base_url=None, fallback_url=None):
+        # Use environment variables with fallbacks
+        default_base = os.getenv('LM_STUDIO_URL', 'http://localhost:1234')
+        default_fallback = os.getenv('LM_STUDIO_FALLBACK_URL', 'http://localhost:8080')
+        
+        self.base_urls = [
+            base_url or default_base,
+            fallback_url or default_fallback
+        ]
         self.available = False
         self.active_url = None
         self.custom_instruction = """You are an expert editor specializing in metal lyrics and dark poetry. Your task is to enhance AI-generated text while ensuring it properly addresses the user's request.

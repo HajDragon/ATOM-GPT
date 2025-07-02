@@ -11,6 +11,9 @@ input.txt
 env/
 venv/
 
+# Environment configuration
+.env
+
 # Backend outputs and data
 backend/out-*/
 backend/data/*/

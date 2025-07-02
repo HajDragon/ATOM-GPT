@@ -49,7 +49,7 @@ Because the code is optimized for metal lyrics generation, it is very easy to ha
 ## install
 
 ```
-pip install torch numpy transformers datasets tiktoken wandb tqdm flask flask-cors requests
+pip install torch numpy transformers datasets tiktoken wandb tqdm flask flask-cors requests python-dotenv
 ```
 
 Dependencies:
@@ -63,6 +63,7 @@ Dependencies:
 -  `tqdm` for progress bars <3
 -  `flask` & `flask-cors` for web API server <3
 -  `requests` for HTTP requests <3
+-  `python-dotenv` for environment variable configuration <3
 
 For the React frontend:
 ```bash
@@ -82,7 +83,17 @@ ATOM-GPT includes a modern web application with ChatGPT-style interface for inte
 
 ### Quick Start - Web App
 
-**Step 1: Start the Backend API Server**
+**Step 1: Configure Environment (Optional)**
+```bash
+# Option A: Use the configuration helper
+python configure.py
+
+# Option B: Copy and edit manually
+cp .env.example .env
+# Then edit .env file with your preferred settings
+```
+
+**Step 2: Start the Backend API Server**
 ```bash
 cd backend/api
 python server.py
@@ -94,7 +105,7 @@ The backend will:
 - Check for LM Studio connection (optional enhancement)
 - Display model information and GPU status
 
-**Step 2: Start the Frontend React App**
+**Step 3: Start the Frontend React App**
 ```bash
 cd frontend
 npm start
@@ -105,7 +116,7 @@ The frontend will:
 - Connect to backend API automatically
 - Open in your default browser
 
-**Step 3: Use the Application**
+**Step 4: Use the Application**
 
 Navigate to:
 - **Chat Interface**: `http://localhost:3000/` - Conversational AI with chat history
@@ -146,8 +157,33 @@ For higher quality outputs, you can optionally connect LM Studio:
 
 1. **Install LM Studio** from [lmstudio.ai](https://lmstudio.ai)
 2. **Load a model** in LM Studio (e.g., CodeLlama, Mistral, etc.)
-3. **Start the server** in LM Studio on default port (1234)
-4. **Enable enhancement** in the web app settings
+3. **Start the server** in LM Studio on your preferred port
+4. **Configure the connection** (see options below)
+5. **Enable enhancement** in the web app settings
+
+#### Configuration Options
+
+**Option 1: Environment Variables (Recommended)**
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env file and set your LM Studio URLs:
+LM_STUDIO_URL=http://localhost:1234
+LM_STUDIO_FALLBACK_URL=http://localhost:8080
+```
+
+**Option 2: Default Ports**
+- Primary: `http://localhost:1234` (LM Studio default)
+- Fallback: `http://localhost:8080`
+
+**Option 3: Custom Configuration**
+Set environment variables before starting the server:
+```bash
+export LM_STUDIO_URL=http://your-custom-host:port
+export LM_STUDIO_FALLBACK_URL=http://your-fallback:port
+cd backend/api && python server.py
+```
 
 When LM Studio is connected, the app will show "✨ Enhanced" badges and produce higher quality responses.
 
@@ -155,8 +191,9 @@ When LM Studio is connected, the app will show "✨ Enhanced" badges and produce
 
 **Backend Issues:**
 - Ensure model is trained and checkpoint exists in `backend/training/out-darklyrics/`
-- Check Python dependencies are installed
-- Verify no port conflicts on 8000
+- Check Python dependencies are installed (including `python-dotenv`)
+- Verify no port conflicts on your configured port (default: 8000)
+- Check `.env` file configuration if using environment variables
 
 **Frontend Issues:**
 - Run `npm install` in frontend directory
@@ -164,9 +201,15 @@ When LM Studio is connected, the app will show "✨ Enhanced" badges and produce
 - Verify no port conflicts on 3000
 
 **Connection Issues:**
-- Check backend is running on port 8000
-- Ensure CORS is properly configured
+- Check backend is running on correct port
+- Ensure CORS is properly configured in `.env` file
 - Check browser console for error messages
+
+**LM Studio Issues:**
+- Verify LM Studio is running on the configured port
+- Check `LM_STUDIO_URL` in your `.env` file
+- Ensure the model is loaded in LM Studio
+- Try the fallback URL if primary connection fails
 
 ## quick start
 
