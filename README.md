@@ -68,7 +68,7 @@ Because the code is optimized for metal lyrics generation, it is very easy to ha
 
 ### 🔐 Authentication & Database
 - **[Authentication System](AUTHENTICATION_COMPLETE.md)** - Complete authentication implementation guide
-- **[Database Cleanup Summary](backend/CLEANUP_SUMMARY.md)** - Database structure and maintenance
+
 ### 🤖 AI & Model Enhancement
 - **[Enhanced Model Summary](ENHANCED_MODEL_SUMMARY.md)** - Model improvements and capabilities
 - **[Training Updates](backend/training/README_UPDATES.md)** - Latest training pipeline improvements

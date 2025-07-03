@@ -1,10 +1,11 @@
-Database for conversations
+✅ Database for conversations - COMPLETED
+✅ Authentication system - COMPLETED  
+✅ Documentation accessibility - COMPLETED
+✅ Database cleanup - COMPLETED
 
-perhaps auth
-
-
-Store settings so they wot  be reset everytime
-
-docker support
-
-UI improvment
+📋 TODO:
+- Store settings so they won't be reset every time
+- Docker support
+- UI improvements
+- Performance optimization
+- Additional test coverage
