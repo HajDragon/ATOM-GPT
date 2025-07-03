@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { api } from '../services/api';
 import ModelInfo from './ModelInfo';
 import { 
   SavedConversation, 
@@ -66,10 +66,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Auto-save conversation when messages change
   useEffect(() => {
     if (messages.length > 0) {
-      const savedMessages: SavedMessage[] = messages.map(msg => ({
+      const savedMessages = messages.map(msg => ({
         ...msg,
-        timestamp: msg.timestamp || new Date()
-      }));
+        timestamp: msg.timestamp instanceof Date ? msg.timestamp.getTime() : msg.timestamp
+      })) as SavedMessage[];
       autoSaveConversation(currentConversationId, savedMessages, conversationTitle);
     }
   }, [messages, currentConversationId, conversationTitle]);
@@ -89,7 +89,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   // Load selected conversation
   useEffect(() => {
     if (selectedConversation) {
-      setMessages(selectedConversation.messages);
+      const convertedMessages: Message[] = selectedConversation.messages.map(msg => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp)
+      }));
+      setMessages(convertedMessages);
       setCurrentConversationId(selectedConversation.id);
       setConversationTitle(selectedConversation.title);
     }
@@ -138,7 +142,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, tempAssistantMessage]);
 
     try {
-      const response = await axios.post('/api/chat', {
+      const response = await api.post('/api/chat', {
         message: userMessage.content,
         settings: settings,
         enhance: lmStudioEnabled,

@@ -6,7 +6,19 @@
 
 This project includes both a **command-line training interface** and a **modern web application** with ChatGPT-style UI for interactive metal lyrics generation.
 
+> 📚 **[Complete Documentation Index](DOCUMENTATION.md)** | 🚀 **[Quick Start Guide](#quick-start---web-app)** | 🔧 **[Setup Instructions](#install)**
+
 ![repro124m](assets/gpt2_124M_loss.png)
+
+## 📋 Table of Contents
+
+- [📚 Documentation](#-documentation) - Complete documentation index
+- [🏗️ Project Structure](#project-structure) - Repository organization  
+- [🎨 Architecture & Visualization](#architecture--visualization) - System overview
+- [⚙️ Installation](#install) - Dependencies and setup
+- [🚀 Quick Start - Web App](#running-the-web-application) - Run the application
+- [🤖 Training](#training) - Model training guides
+- [📊 Dataset](#the-dataset-darklyrics) - Information about the training data
 
 ## Project Structure
 
@@ -45,6 +57,56 @@ For a comprehensive understanding of the ATOM-GPT architecture and workflow:
 - **🔄 [Hybrid Flowchart](backend/visualization/Hybrid_flowchart.html)** - Interactive flowchart showing the complete data processing and training workflow
 
 Because the code is optimized for metal lyrics generation, it is very easy to hack to your needs, train new models from scratch, or finetune pretrained checkpoints for different metal genres and styles.
+
+## 📚 Documentation
+
+### 🚀 Quick Start & Setup
+- **[Main README](README.md)** - This file - overview and getting started
+- **[Backend Setup](backend/README.md)** - Complete backend setup and training guide
+- **[Frontend Setup](frontend/README.md)** - React frontend installation and configuration
+- **[Environment Configuration](.env.example)** - Environment variables and configuration options
+
+### 🔐 Authentication & Database
+- **[Authentication System](AUTHENTICATION_COMPLETE.md)** - Complete authentication implementation guide
+
+### 🤖 AI & Model Enhancement
+- **[Enhanced Model Summary](ENHANCED_MODEL_SUMMARY.md)** - Model improvements and capabilities
+- **[Training Updates](backend/training/README_UPDATES.md)** - Latest training pipeline improvements
+- **[Chat Improvements](backend/training/CHAT_IMPROVEMENTS.md)** - Conversational AI enhancements
+- **[Enhanced Config Guide](backend/config/ENHANCED_CONFIG_GUIDE.md)** - Advanced configuration options
+
+### 🧪 Testing & Development
+- **[Test Documentation](tests/README.md)** - Testing framework and test cases
+- **[Organization Summary](tests/ORGANIZATION_SUMMARY.md)** - Project organization and structure
+- **[Frontend Setup Complete](frontend/SETUP_COMPLETE.md)** - Frontend implementation status
+
+### 📋 Project Status & Notes
+- **[Complete Documentation Index](DOCUMENTATION.md)** - Master index of all documentation
+- **[GitHub Documentation Hub](.github/README.md)** - GitHub-specific documentation entry point
+- **[Project Notes](note.txt)** - Development notes and changelog
+- **[Todo List](todo.txt)** - Current tasks and future improvements
+
+### 🎯 Quick Links by Category
+
+#### 🏃‍♂️ **Getting Started**
+1. [Installation](#install) - Install dependencies
+2. [Quick Start](#quick-start---web-app) - Run the web application
+3. [Backend Setup](backend/README.md) - Detailed backend guide
+
+#### 🔧 **Configuration & Setup**
+1. [Environment Variables](.env.example) - Configuration options
+2. [Enhanced Config Guide](backend/config/ENHANCED_CONFIG_GUIDE.md) - Advanced setup
+3. [Frontend Setup](frontend/README.md) - React app configuration
+
+#### 🎨 **Features & Capabilities**
+1. [Authentication Complete](AUTHENTICATION_COMPLETE.md) - User system overview
+2. [Enhanced Model Summary](ENHANCED_MODEL_SUMMARY.md) - AI capabilities
+3. [Chat Improvements](backend/training/CHAT_IMPROVEMENTS.md) - Conversation features
+
+#### 🔬 **Development & Testing**
+1. [Test Documentation](tests/README.md) - Running tests
+2. [Training Updates](backend/training/README_UPDATES.md) - Model training
+3. [Organization Summary](tests/ORGANIZATION_SUMMARY.md) - Project structure
 
 ## install
 
@@ -358,7 +420,7 @@ No relving thee post mose the wear
 
 Not bad for ~3 minutes on a CPU, for a hint of the right character gestalt. If you're willing to wait longer, feel free to tune the hyperparameters, increase the size of the network, the context length (`--block_size`), the length of training, etc.
 
-Finally, on Apple Silicon Macbooks and with a recent PyTorch version make sure to add `--device=mps` (short for "Metal Performance Shaders"); PyTorch then uses the on-chip GPU that can *significantly* accelerate training (2-3X) and allow you to use larger networks. See [Issue 28](https://github.com/karpathy/nanoGPT/issues/28) for more.
+Finally, on Apple Silicon Macbooks and with a recent PyTorch version make sure to add `--device=mps` (short for "Metal Performance Shaders"); PyTorch then uses the on-chip GPU that can *significantly* accelerate training (2-3X) and allow you to use larger networks.
 
 ## reproducing GPT-2
 

@@ -9,9 +9,17 @@ interface ChatLayoutProps {
   lmStudioStatus: 'connected' | 'disconnected' | 'checking';
   modelStatus: 'loaded' | 'loading' | 'error';
   onRefresh: () => void;
+  onShowAuth?: () => void;
+  onShowProfile?: () => void;
 }
 
-const ChatLayout: React.FC<ChatLayoutProps> = ({ lmStudioStatus, modelStatus, onRefresh }) => {
+const ChatLayout: React.FC<ChatLayoutProps> = ({ 
+  lmStudioStatus, 
+  modelStatus, 
+  onRefresh,
+  onShowAuth,
+  onShowProfile 
+}) => {
   const [selectedConversation, setSelectedConversation] = useState<SavedConversation | null>(null);
   const [newChatTrigger, setNewChatTrigger] = useState(0);
 
@@ -44,6 +52,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({ lmStudioStatus, modelStatus, on
               lmStudioStatus={lmStudioStatus}
               modelStatus={modelStatus}
               onRefresh={onRefresh}
+              onShowAuth={onShowAuth}
+              onShowProfile={onShowProfile}
             />
           </div>
         </header>

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
+import { api } from '../services/api';
 import ModelInfo from './ModelInfo';
 
 interface CompletionSettings {
@@ -50,7 +51,7 @@ const CompletionInterface: React.FC = () => {
     setGenerationProgress(0);
 
     try {
-      const response = await axios.post('/api/completion', {
+      const response = await api.post('/api/completion', {
         prompt: settings.prompt,
         settings: {
           tokens: settings.tokens,
@@ -86,7 +87,7 @@ const CompletionInterface: React.FC = () => {
 
     } catch (error) {
       console.error('Error generating completion:', error);
-      if (axios.isAxiosError(error)) {
+      if (axios.isAxiosError(error) || error instanceof AxiosError) {
         if (error.response) {
           setResult(`Error ${error.response.status}: ${error.response.data?.error || 'Server error'}`);
         } else if (error.request) {

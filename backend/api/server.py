@@ -188,8 +188,8 @@ if __name__ == '__main__':
     print(f"[Model] Loaded: {model is not None}")
     print(f"[Device] {device}")
     print(f"[LM Studio] {'Connected' if lm_enhancer.available else 'Offline'}")
-    print(f"[Server] Starting on http://localhost:8000")
+    print(f"[Server] Starting on http://localhost:8001")
     print("[Frontend] React should connect to this URL")
     print("=" * 60)
     
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8001, debug=True)
