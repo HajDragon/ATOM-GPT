@@ -78,3 +78,11 @@ Successfully implemented a complete authentication system for the ATOM-GPT front
 The authentication system is fully implemented and functional. Users can register, login, and use the app with persistent authentication state and database-backed storage.
 
 **Next Steps**: Test the authentication flow and integrate with existing chat functionality.
+
+---
+
+## 📚 Related Documentation
+- **[Main Project README](README.md)** - Project overview and quick start
+- **[Complete Documentation Index](DOCUMENTATION.md)** - All documentation files
+- **[Backend README](backend/README.md)** - Backend setup and API details  
+- **[Frontend README](frontend/README.md)** - React app setup and usage
