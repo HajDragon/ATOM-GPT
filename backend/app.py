@@ -26,7 +26,6 @@ sys.path.append(os.path.join(backend_dir, 'training'))
 try:
     from interactive_chat import (
         generate_response, 
-        generate_sentence_completion,
         generate_metal_completion,
         lm_enhancer,
         model,
@@ -350,32 +349,56 @@ def create_conversation():
     
     return jsonify({'id': conv_id}), 201
 
-@app.route('/conversations/<conversation_id>/messages', methods=['POST'])
+@app.route('/conversations/<conversation_id>/messages', methods=['POST', 'GET'])
 @require_auth
-def add_message():
-    """Add a message to a conversation."""
-    conversation_id = request.view_args['conversation_id']
-    data = request.get_json()
-    content = data.get('content')
-    role = data.get('role')
-    timestamp = data.get('timestamp', datetime.now().isoformat())
+def handle_messages(conversation_id):
+    """Handle messages - POST to add, GET to retrieve."""
+    if request.method == 'POST':
+        # Add a message to a conversation
+        data = request.get_json()
+        content = data.get('content')
+        role = data.get('role')
+        timestamp = data.get('timestamp', datetime.now().isoformat())
+        
+        if not content or not role:
+            return jsonify({'error': 'Content and role required'}), 400
+        
+        message_id = f"msg_{secrets.token_hex(8)}"
+        
+        conn = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO messages (id, conversation_id, content, role, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (message_id, conversation_id, content, role, timestamp))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'id': message_id}), 201
     
-    if not content or not role:
-        return jsonify({'error': 'Content and role required'}), 400
-    
-    message_id = f"msg_{secrets.token_hex(8)}"
-    
-    conn = sqlite3.connect(app.config['DATABASE_PATH'])
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO messages (id, conversation_id, content, role, timestamp)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (message_id, conversation_id, content, role, timestamp))
-    
-    conn.commit()
-    conn.close()
-    
-    return jsonify({'id': message_id}), 201
+    elif request.method == 'GET':
+        # Get messages from a conversation
+        conn = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT id, content, role, timestamp
+            FROM messages 
+            WHERE conversation_id = ? 
+            ORDER BY timestamp ASC
+        ''', (conversation_id,))
+        
+        messages = []
+        for row in cursor.fetchall():
+            messages.append({
+                'id': row[0],
+                'content': row[1],
+                'role': row[2],
+                'timestamp': row[3]
+            })
+        
+        conn.close()
+        return jsonify(messages)
 
 # ============================
 # AI API ROUTES (Port 8000)
@@ -415,8 +438,9 @@ def api_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/chat', methods=['POST'])
+@require_auth
 def api_chat():
-    """Handle chat messages with AI."""
+    """Handle chat messages with AI and store in database."""
     if not AI_AVAILABLE:
         return jsonify({
             'success': False,
@@ -428,6 +452,7 @@ def api_chat():
         data = request.get_json()
         message = data.get('message', '')
         settings = data.get('settings', {})
+        conversation_id = data.get('conversation_id')
         
         if not message:
             return jsonify({'error': 'No message provided'}), 400
@@ -435,6 +460,34 @@ def api_chat():
         # Extract settings with defaults
         max_tokens = min(settings.get('tokens', 100), 300)
         temperature = max(min(settings.get('temperature', 0.8), 2.0), 0.1)
+        
+        # Get user from request context (set by @require_auth)
+        user_id = request.current_user['id']
+        
+        # Create conversation if not provided
+        if not conversation_id:
+            conversation_id = f"conv_{secrets.token_hex(8)}"
+            title = message[:50] + "..." if len(message) > 50 else message
+            
+            conn = sqlite3.connect(app.config['DATABASE_PATH'])
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO conversations (id, user_id, title, type, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (conversation_id, user_id, title, 'chat', datetime.now().isoformat(), datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+        
+        # Store user message
+        user_message_id = f"msg_{secrets.token_hex(8)}"
+        conn = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO messages (id, conversation_id, content, role, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_message_id, conversation_id, message, 'user', datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
         
         print(f"Chat request: '{message}' (tokens: {max_tokens}, temp: {temperature})")
         
@@ -449,13 +502,27 @@ def api_chat():
         
         processing_time = (time.time() - start_time) * 1000
         
+        # Store AI response
+        ai_message_id = f"msg_{secrets.token_hex(8)}"
+        conn = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO messages (id, conversation_id, content, role, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (ai_message_id, conversation_id, response, 'assistant', datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        
         print(f"Response generated in {processing_time:.2f}ms: '{response[:50]}...' (Enhanced: {was_enhanced})")
         
         return jsonify({
             'success': True,
             'response': response,
             'enhanced': was_enhanced,
-            'processing_time': round(processing_time, 2)
+            'processing_time': round(processing_time, 2),
+            'conversation_id': conversation_id,
+            'user_message_id': user_message_id,
+            'ai_message_id': ai_message_id
         })
         
     except Exception as e:
@@ -467,8 +534,9 @@ def api_chat():
         }), 500
 
 @app.route('/api/completion', methods=['POST'])
+@require_auth
 def api_completion():
-    """Handle text completion requests."""
+    """Handle text completion requests and store in database."""
     if not AI_AVAILABLE:
         return jsonify({
             'success': False,
@@ -481,12 +549,41 @@ def api_completion():
         prompt = data.get('prompt', '')
         settings = data.get('settings', {})
         enhance_enabled = data.get('enhance', True)
+        conversation_id = data.get('conversation_id')
         
         if not prompt:
             return jsonify({'error': 'No prompt provided'}), 400
         
         max_tokens = min(settings.get('tokens', 100), 300)
         temperature = max(min(settings.get('temperature', 0.8), 2.0), 0.1)
+        
+        # Get user from request context (set by @require_auth)
+        user_id = request.current_user['id']
+        
+        # Create conversation if not provided
+        if not conversation_id:
+            conversation_id = f"conv_{secrets.token_hex(8)}"
+            title = prompt[:50] + "..." if len(prompt) > 50 else prompt
+            
+            conn = sqlite3.connect(app.config['DATABASE_PATH'])
+            cursor = conn.cursor()
+            cursor.execute('''
+                INSERT INTO conversations (id, user_id, title, type, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (conversation_id, user_id, title, 'completion', datetime.now().isoformat(), datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+        
+        # Store user prompt
+        user_message_id = f"msg_{secrets.token_hex(8)}"
+        conn = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO messages (id, conversation_id, content, role, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (user_message_id, conversation_id, prompt, 'user', datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
         
         print(f"Completion request: '{prompt}' (tokens: {max_tokens}, temp: {temperature}, enhance: {enhance_enabled})")
         
@@ -505,13 +602,27 @@ def api_completion():
         
         processing_time = (time.time() - start_time) * 1000
         
+        # Store AI completion
+        ai_message_id = f"msg_{secrets.token_hex(8)}"
+        conn = sqlite3.connect(app.config['DATABASE_PATH'])
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO messages (id, conversation_id, content, role, timestamp)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (ai_message_id, conversation_id, completion_text, 'assistant', datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        
         print(f"Completion generated in {processing_time:.2f}ms: '{completion_text[:50]}...' (Enhanced: {was_enhanced})")
         
         return jsonify({
             'success': True,
             'completion': completion_text,
             'enhanced': was_enhanced,
-            'processing_time': round(processing_time, 2)
+            'processing_time': round(processing_time, 2),
+            'conversation_id': conversation_id,
+            'user_message_id': user_message_id,
+            'ai_message_id': ai_message_id
         })
         
     except Exception as e:
@@ -580,11 +691,6 @@ def lm_studio_reconnect():
 def health_check():
     """Health check endpoint."""
     return jsonify({'status': 'healthy', 'service': 'atom-gpt-backend'})
-
-@app.route('/test-route', methods=['GET'])
-def test_route():
-    """Simple test route to verify routing works."""
-    return jsonify({'message': 'Test route working!', 'time': datetime.now().isoformat()})
 
 if __name__ == '__main__':
     # Initialize database
