@@ -1,64 +1,96 @@
 # ATOM-GPT Tests
 
-This folder contains test scripts for the ATOM-GPT interactive chat system.
+Test suite validating chat generation, enhancement pipeline, sampling quality, and structural organization.
 
-## Test Files
+## Structure
+| File | Purpose |
+|------|---------|
+| `run_tests.py` | Interactive runner (select tests) |
+| `test_basic.py` | Baseline environment checks |
+| `test_sampling.py` | Sampling parameter behavior |
+| `test_completion.py` | Completion endpoint/function tests |
+| `test_clean_enhancement.py` | Enhancement cleanliness (no instruction leakage) |
+| `test_lm_enhancement.py` | Full enhancement evaluation |
+| `test_lm_quick.py` | Fast enhancement smoke test |
+| `test_interactive_clean.py` | Chat pipeline cleanliness |
+| `test_full_100_tokens.py` | Longer generation stability |
+| `test_longer_responses.py` | Length scaling |
+| `test_quick_tokens.py` | Token limit handling |
+| `test_regex_fix.py` | Cleaning regex correctness |
+| `test_relevance.py` | Relevance heuristics validation |
+| `test_enhancement.py` | General enhancement flag behavior |
+| `test_organization.py` | Ensures test layout integrity |
+| `test_simple.py` | Minimal functional sanity |
 
-### LM Studio Enhancement Tests
-- `test_clean_enhancement.py` - Tests LM Studio enhancement without instruction leakage
-- `test_lm_quick.py` - Quick LM Studio enhancement validation
-- `test_lm_enhancement.py` - Comprehensive LM Studio enhancement testing
-
-### Response Generation Tests
-- `test_interactive_clean.py` - Tests interactive chat responses for cleanliness
-- `test_full_100_tokens.py` - Tests full response generation with 100 tokens
-- `test_longer_responses.py` - Tests longer response generation capabilities
-- `test_quick_tokens.py` - Tests token limit handling
-
-### Component Tests
-- `test_relevance.py` - Tests response relevance checking
-- `test_completion.py` - Tests sentence completion functionality
-- `test_enhancement.py` - Tests general enhancement features
-- `test_simple.py` - Simple functionality tests
-
-### Utility Tests
-- `test_regex_fix.py` - Tests regex pattern fixes
-- `test_sampling.py` - Tests sampling mechanisms
+## Prerequisites
+- Backend dependencies installed
+- At least one trained checkpoint in `backend/out-darklyrics` (for generation tests)
+- (Optional) LM Studio running on configured port for enhancement tests
 
 ## Running Tests
-
-### Quick Test Run
-To run a specific test, navigate to the tests directory and run:
+### Option A: Python Direct
 ```bash
 cd tests
-python test_clean_enhancement.py
+python test_basic.py
 ```
 
-### Using the Test Runner
-Use the test runner for an interactive experience:
+### Option B: Interactive Runner
 ```bash
-cd tests
 python run_tests.py
 ```
 
-### Requirements
-- Make sure ATOM-GPT is properly set up in the backend/training directory
-- LM Studio should be running on localhost:8080 for LM Studio tests
-- Tests assume the model checkpoint exists in backend/training/out-darklyrics/
+### Option C: Pytest (Recommended Aggregate)
+Install pytest if not present:
+```bash
+pip install pytest
+```
+Run all tests:
+```bash
+pytest -q tests
+```
+Run subset with keyword:
+```bash
+pytest -k enhancement -q
+```
 
-## Test Categories
+## Environment Variables for Tests
+If using non-default ports:
+```bash
+export API_PORT=8000
+export LM_STUDIO_URL=http://localhost:1234
+```
 
-### ✅ Passing Tests
-- LM Studio enhancement without instruction leakage
-- Response generation with proper token limits
-- Clean output validation
+## Categorization
+| Category | Tests |
+|----------|-------|
+| Enhancement | test_clean_enhancement, test_lm_enhancement, test_lm_quick, test_enhancement |
+| Generation | test_full_100_tokens, test_longer_responses, test_quick_tokens, test_interactive_clean |
+| Sampling | test_sampling, test_completion |
+| Quality / Cleanliness | test_regex_fix, test_relevance |
+| Infra / Structure | test_basic, test_organization, test_simple |
 
-### 🔧 Development Tests
-- Regex pattern testing
-- Component validation
-- Feature development testing
+## Adding New Tests
+1. Create `test_<feature>.py`.
+2. Import necessary modules (ensure `sys.path` includes project root if needed).
+3. Use clear assertion messages (`assert condition, "why it failed"`).
+4. If test requires checkpoint, skip gracefully if missing:
+```python
+import os, pytest
+if not os.path.exists("../backend/out-darklyrics"):
+    pytest.skip("Checkpoint dir missing")
+```
+5. Document purpose at top with a short docstring.
 
-## Notes
-- Tests automatically adjust import paths to work from the tests directory
-- Some tests require LM Studio to be running
-- Tests are designed to validate the fixes for instruction leakage and token limit issues
+## Troubleshooting
+| Symptom | Fix |
+|---------|-----|
+| ImportError backend.* | Run from project root or adjust `PYTHONPATH` |
+| Enhancement tests failing | Confirm LM Studio running & reachable |
+| Slow tests | Limit with `pytest -k quick` |
+| Random failures | Set deterministic seed in test harness |
+
+## Related Docs
+- Chat Pipeline: `../backend/training/CHAT_IMPROVEMENTS.md`
+- Training Updates: `../backend/training/README_UPDATES.md`
+
+_Last Updated: Aug 2025_

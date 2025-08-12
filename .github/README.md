@@ -1,24 +1,30 @@
 # ATOM-GPT Documentation Hub 📚
 
-Welcome to ATOM-GPT! Here are quick links to get you started:
+Central quick-links for browsing within GitHub.
 
 ## 🚀 Quick Start
-- **[Main README](../README.md)** - Project overview and installation
-- **[Complete Documentation Index](../DOCUMENTATION.md)** - All documentation files
-- **[Backend Setup](../backend/README.md)** - Server setup and training
-- **[Frontend Setup](../frontend/README.md)** - React app installation
+- **[Main README](../README.md)** — Project overview & installation
+- **[Backend Guide](../backend/README.md)** — API + training backend
+- **[Frontend Guide](../frontend/README.md)** — React UI setup
+- **[Env Config Template](../.env.example)** — Environment variables
 
-## 🔐 Authentication System
-- **[Authentication Complete](../AUTHENTICATION_COMPLETE.md)** - Full auth system guide
+## 🤖 Model & Training
+- **[Enhanced Model Summary](../ENHANCED_MODEL_SUMMARY.md)** — Architecture & capabilities
+- **[Training Pipeline Updates](../backend/training/README_UPDATES.md)** — Latest improvements
+- **[Chat Layer Improvements](../backend/training/CHAT_IMPROVEMENTS.md)** — Conversation pipeline
+- **[Enhanced Config Guide](../backend/config/ENHANCED_CONFIG_GUIDE.md)** — Hyperparameter & runtime config
 
-## 🤖 AI & Training
-- **[Enhanced Model Summary](../ENHANCED_MODEL_SUMMARY.md)** - AI capabilities
-- **[Training Guide](../backend/training/README_UPDATES.md)** - Model training
+## 🔐 Authentication
+- **[Authentication Complete](../AUTHENTICATION_COMPLETE.md)** — Implemented auth system
 
-## 🧪 Testing & Development
-- **[Test Documentation](../tests/README.md)** - Testing framework
-- **[Project Organization](../tests/ORGANIZATION_SUMMARY.md)** - Structure overview
+## 🧪 Testing
+- **[Test Documentation](../tests/README.md)** — Test suite usage
+- **[Organization Summary](../tests/ORGANIZATION_SUMMARY.md)** — Structure verification
+
+## 🗺️ Master Index
+- **[Complete Documentation Index](../DOCUMENTATION.md)** — Full navigable index
 
 ---
+New contributor? Start with the Main README → Backend Guide → Frontend Guide, then explore model docs.
 
-**New to ATOM-GPT?** Start with the [Main README](../README.md) and then check out the [Complete Documentation Index](../DOCUMENTATION.md) for everything else!
+_Last Updated: Aug 2025_
