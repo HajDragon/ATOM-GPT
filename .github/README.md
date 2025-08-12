@@ -14,7 +14,6 @@ Welcome to ATOM-GPT! Here are quick links to get you started:
 ## 🤖 AI & Training
 - **[Enhanced Model Summary](../ENHANCED_MODEL_SUMMARY.md)** - AI capabilities
 - **[Training Guide](../backend/training/README_UPDATES.md)** - Model training
-- **[Configuration Guide](../backend/config/ENHANCED_CONFIG_GUIDE.md)** - Advanced setup
 
 ## 🧪 Testing & Development
 - **[Test Documentation](../tests/README.md)** - Testing framework
