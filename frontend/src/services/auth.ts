@@ -1,4 +1,5 @@
 import { authApi } from './api';
+import axios from 'axios';
 
 const API_BASE_URL = ''; // Using authApi baseURL
 
@@ -61,20 +62,32 @@ class AuthService {
         localStorage.removeItem('user_data');
       }
     }
+    
+    // Set auth header if we have a token
+    this.setAuthHeader();
   }
 
   // Set authentication header for axios
   private setAuthHeader() {
     if (this.token) {
+      console.log('🔐 Setting auth header with token:', this.token.substring(0, 20) + '...');
       authApi.defaults.headers.common['Authorization'] = `Bearer ${this.token}`;
     } else {
+      console.log('🔐 No token available, removing auth header');
       delete authApi.defaults.headers.common['Authorization'];
     }
   }
 
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      const response = await authApi.post('/auth/login', credentials);
+      console.log('🔐 Attempting login with:', { email: credentials.email });
+      console.log('🔗 Auth API base URL:', authApi.defaults.baseURL);
+      console.log('🔗 Full URL will be:', `${authApi.defaults.baseURL}/../auth/login`);
+      
+      // Auth endpoints are at root level, not under /api
+      const response = await axios.post('http://localhost:8000/auth/login', credentials);
+      console.log('✅ Login response:', response.status, response.data);
+      
       const { access_token, user, message } = response.data;
 
       this.token = access_token;
@@ -88,13 +101,17 @@ class AuthService {
 
       return { access_token, user, message };
     } catch (error: any) {
+      console.error('❌ Login error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error message:', error.message);
       throw new Error(error.response?.data?.error || 'Login failed');
     }
   }
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
     try {
-      const response = await authApi.post('/auth/register', userData);
+      const response = await axios.post('http://localhost:8000/auth/register', userData);
       const { access_token, user, message } = response.data;
 
       this.token = access_token;
@@ -115,7 +132,9 @@ class AuthService {
   async getCurrentUser(): Promise<{ user: User; stats: UserStats }> {
     try {
       this.setAuthHeader();
-      const response = await authApi.get('/auth/me');
+      const response = await axios.get('http://localhost:8000/auth/me', {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
       this.user = response.data.user;
       localStorage.setItem('user_data', JSON.stringify(this.user));
       return response.data;
@@ -148,11 +167,16 @@ class AuthService {
   }
 
   logout() {
+    console.log('🚪 Logging out user...');
     this.token = null;
     this.user = null;
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
+    localStorage.removeItem('user_settings');
+    // Clear any cached conversations or other user data
+    localStorage.removeItem('conversations_cache');
     delete authApi.defaults.headers.common['Authorization'];
+    console.log('✅ User logged out and data cleared');
   }
 
   isAuthenticated(): boolean {
@@ -169,6 +193,7 @@ class AuthService {
 
   // Initialize auth headers on app startup
   initialize() {
+    console.log('🔄 Initializing auth service...');
     this.setAuthHeader();
   }
 }

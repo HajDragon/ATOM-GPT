@@ -46,7 +46,7 @@ const ModelInfo: React.FC<ModelInfoProps> = ({ currentSettings, mode = 'Normal C
     setIsLoading(true);
     try {
       // Use the existing status endpoint for now
-      const response = await axios.get('/api/status');
+      const response = await axios.get('http://localhost:8000/api/status');
       if (response.data.success) {
         // Create a mock comprehensive response based on the status data
         const mockModelInfo = {

@@ -17,6 +17,15 @@ import jwt
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
+# Load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    # Load from parent directory (project root)
+    load_dotenv(os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env'))
+except ImportError:
+    print("⚠️ python-dotenv not installed. Environment variables from .env file will not be loaded.")
+    print("Install with: pip install python-dotenv")
+
 # Add necessary directories to Python path for AI imports
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(backend_dir, 'models'))
@@ -48,7 +57,10 @@ except Exception as e:
         return "AI not available. Please check backend configuration.", False
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001'], 
+     methods=['GET', 'POST', 'DELETE', 'PATCH', 'OPTIONS'], 
+     allow_headers=['Content-Type', 'Authorization'],
+     supports_credentials=True)
 
 # Configuration
 app.config['SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-key-change-in-production')
@@ -90,6 +102,7 @@ def init_database():
             user_id INTEGER NOT NULL,
             title VARCHAR(255) NOT NULL,
             type VARCHAR(20) DEFAULT 'chat',
+            is_active BOOLEAN DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (user_id) REFERENCES users(id)
@@ -104,9 +117,33 @@ def init_database():
             content TEXT NOT NULL,
             role VARCHAR(20) NOT NULL,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tokens_used INTEGER DEFAULT 0,
+            processing_time REAL DEFAULT 0,
+            enhanced BOOLEAN DEFAULT 0,
             FOREIGN KEY (conversation_id) REFERENCES conversations(id)
         )
     ''')
+    
+    # Add missing columns if they don't exist (for existing databases)
+    try:
+        cursor.execute('ALTER TABLE conversations ADD COLUMN is_active BOOLEAN DEFAULT 1')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE messages ADD COLUMN tokens_used INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE messages ADD COLUMN processing_time REAL DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+        
+    try:
+        cursor.execute('ALTER TABLE messages ADD COLUMN enhanced BOOLEAN DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Create default admin user if not exists
     cursor.execute('SELECT COUNT(*) FROM users WHERE email = ?', ('admin@atomgpt.local',))
@@ -137,7 +174,7 @@ def generate_jwt_token(user_id):
     """Generate JWT token for user."""
     payload = {
         'user_id': user_id,
-        'exp': datetime.utcnow() + timedelta(hours=app.config['JWT_EXPIRATION_HOURS'])
+        'exp': datetime.now() + timedelta(hours=app.config['JWT_EXPIRATION_HOURS'])
     }
     return jwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
 
@@ -283,18 +320,80 @@ def register():
 @require_auth
 def get_current_user():
     """Get current user info."""
-    # Mock stats for now
-    stats = {
-        'total_conversations': 5,
-        'chat_conversations': 3,
-        'completion_conversations': 2,
-        'total_messages': 25,
-        'total_requests': 30,
-        'total_tokens': 1500,
-        'avg_response_time': 250,
-        'enhanced_requests': 5,
-        'user_id': request.current_user['id']
-    }
+    conn = sqlite3.connect(app.config['DATABASE_PATH'])
+    cursor = conn.cursor()
+    user_id = request.current_user['id']
+    
+    try:
+        # Get conversation counts (only active conversations)
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_conversations,
+                SUM(CASE WHEN type = 'chat' THEN 1 ELSE 0 END) as chat_conversations,
+                SUM(CASE WHEN type = 'completion' THEN 1 ELSE 0 END) as completion_conversations
+            FROM conversations 
+            WHERE user_id = ? AND is_active = 1
+        """, (user_id,))
+        conv_stats = cursor.fetchone()
+        
+        # Get message counts and tokens (only from active conversations)
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_messages,
+                SUM(COALESCE(tokens_used, 0)) as total_tokens,
+                AVG(COALESCE(processing_time, 0)) as avg_response_time
+            FROM messages m
+            JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.user_id = ? AND c.is_active = 1
+        """, (user_id,))
+        msg_stats = cursor.fetchone()
+        
+        # Get enhanced requests count (only from active conversations)
+        cursor.execute("""
+            SELECT COUNT(*) as enhanced_requests
+            FROM messages m
+            JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.user_id = ? AND c.is_active = 1 AND m.role = 'assistant' AND m.enhanced = 1
+        """, (user_id,))
+        enhanced_count = cursor.fetchone()[0]
+        
+        # Get total API calls (user messages + assistant messages from active conversations)
+        cursor.execute("""
+            SELECT COUNT(*) as total_requests
+            FROM messages m
+            JOIN conversations c ON m.conversation_id = c.id
+            WHERE c.user_id = ? AND c.is_active = 1
+        """, (user_id,))
+        total_requests = cursor.fetchone()[0]
+        
+        stats = {
+            'total_conversations': conv_stats[0] or 0,
+            'chat_conversations': conv_stats[1] or 0,
+            'completion_conversations': conv_stats[2] or 0,
+            'total_messages': msg_stats[0] or 0,
+            'total_requests': total_requests or 0,
+            'total_tokens': int(msg_stats[1] or 0),
+            'avg_response_time': int(msg_stats[2] or 0),
+            'enhanced_requests': enhanced_count or 0,
+            'user_id': user_id
+        }
+        
+    except Exception as e:
+        print(f"Error calculating user stats: {e}")
+        # Fallback to zeros if database query fails
+        stats = {
+            'total_conversations': 0,
+            'chat_conversations': 0,
+            'completion_conversations': 0,
+            'total_messages': 0,
+            'total_requests': 0,
+            'total_tokens': 0,
+            'avg_response_time': 0,
+            'enhanced_requests': 0,
+            'user_id': user_id
+        }
+    finally:
+        conn.close()
     
     return jsonify({
         'user': request.current_user,
@@ -305,27 +404,52 @@ def get_current_user():
 @require_auth
 def get_conversations():
     """Get user conversations."""
+    limit = request.args.get('limit', 50, type=int)
+    conv_type = request.args.get('type')
+    
     conn = sqlite3.connect(app.config['DATABASE_PATH'])
     cursor = conn.cursor()
-    cursor.execute('''
-        SELECT id, title, type, created_at, updated_at 
-        FROM conversations 
-        WHERE user_id = ? 
-        ORDER BY updated_at DESC
-    ''', (request.current_user['id'],))
+    
+    # Build query based on filters
+    query = '''
+        SELECT c.id, c.title, c.type, c.created_at, c.updated_at,
+               COUNT(m.id) as message_count,
+               MAX(m.timestamp) as last_message_at
+        FROM conversations c
+        LEFT JOIN messages m ON c.id = m.conversation_id
+        WHERE c.user_id = ? AND c.is_active = 1
+    '''
+    params = [request.current_user['id']]
+    
+    if conv_type:
+        query += ' AND c.type = ?'
+        params.append(conv_type)
+    
+    query += '''
+        GROUP BY c.id, c.title, c.type, c.created_at, c.updated_at
+        ORDER BY c.updated_at DESC
+        LIMIT ?
+    '''
+    params.append(limit)
+    
+    cursor.execute(query, params)
     
     conversations = []
     for row in cursor.fetchall():
         conversations.append({
             'id': row[0],
+            'user_id': request.current_user['id'],
             'title': row[1],
-            'type': row[2],
+            'conversation_type': row[2],
             'created_at': row[3],
-            'updated_at': row[4]
+            'updated_at': row[4],
+            'message_count': row[5] or 0,
+            'last_message_at': row[6],
+            'is_archived': False
         })
     
     conn.close()
-    return jsonify(conversations)
+    return jsonify({'conversations': conversations})
 
 @app.route('/conversations', methods=['POST'])
 @require_auth
@@ -335,54 +459,118 @@ def create_conversation():
     title = data.get('title', 'New Conversation')
     conv_type = data.get('type', 'chat')
     
-    conv_id = f"conv_{secrets.token_hex(8)}"
+    # Generate a more unique conversation ID
+    timestamp = int(time.time() * 1000)  # milliseconds since epoch
+    random_part = secrets.token_hex(8)
+    conv_id = f"conv_{timestamp}_{random_part}"
     
     conn = sqlite3.connect(app.config['DATABASE_PATH'])
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO conversations (id, user_id, title, type)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO conversations (id, user_id, title, type, is_active)
+        VALUES (?, ?, ?, ?, 1)
     ''', (conv_id, request.current_user['id'], title, conv_type))
     
     conn.commit()
     conn.close()
     
-    return jsonify({'id': conv_id}), 201
+    return jsonify({
+        'conversation_id': conv_id,
+        'id': conv_id,
+        'title': title,
+        'type': conv_type,
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat()
+    }), 201
 
 @app.route('/conversations/<conversation_id>/messages', methods=['POST', 'GET'])
 @require_auth
 def handle_messages(conversation_id):
     """Handle messages - POST to add, GET to retrieve."""
     if request.method == 'POST':
-        # Add a message to a conversation
+        # Add a message to a conversation - verify user owns the conversation
+        user_id = request.current_user['id']
         data = request.get_json()
         content = data.get('content')
         role = data.get('role')
         timestamp = data.get('timestamp', datetime.now().isoformat())
         
+        # Optional metadata
+        enhanced = data.get('enhanced', False)
+        tokens_used = data.get('tokens_used', 0)
+        processing_time = data.get('processing_time', 0.0)
+        model_used = data.get('model_used', '')
+        temperature = data.get('temperature')
+        top_p = data.get('top_p')
+        repetition_penalty = data.get('repetition_penalty')
+        
         if not content or not role:
             return jsonify({'error': 'Content and role required'}), 400
         
-        message_id = f"msg_{secrets.token_hex(8)}"
+        # Generate a more unique message ID
+        msg_timestamp = int(time.time() * 1000)
+        random_part = secrets.token_hex(6)
+        message_id = f"msg_{msg_timestamp}_{random_part}"
         
         conn = sqlite3.connect(app.config['DATABASE_PATH'])
         cursor = conn.cursor()
+        
+        # First verify the conversation belongs to the authenticated user
         cursor.execute('''
-            INSERT INTO messages (id, conversation_id, content, role, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (message_id, conversation_id, content, role, timestamp))
+            SELECT id FROM conversations 
+            WHERE id = ? AND user_id = ? AND is_active = 1
+        ''', (conversation_id, user_id))
+        
+        if cursor.fetchone() is None:
+            conn.close()
+            return jsonify({'error': 'Conversation not found or access denied'}), 404
+        
+        cursor.execute('''
+            INSERT INTO messages (id, conversation_id, content, role, timestamp, tokens_used, processing_time, enhanced)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (message_id, conversation_id, content, role, timestamp, tokens_used, processing_time, enhanced))
+        
+        # Update conversation's updated_at timestamp
+        cursor.execute('''
+            UPDATE conversations 
+            SET updated_at = ?
+            WHERE id = ?
+        ''', (timestamp, conversation_id))
         
         conn.commit()
         conn.close()
         
-        return jsonify({'id': message_id}), 201
+        return jsonify({
+            'message_id': message_id,
+            'id': message_id,
+            'conversation_id': conversation_id,
+            'content': content,
+            'role': role,
+            'timestamp': timestamp,
+            'enhanced': enhanced,
+            'tokens_used': tokens_used,
+            'processing_time': processing_time
+        }), 201
     
     elif request.method == 'GET':
-        # Get messages from a conversation
+        # Get messages from a conversation - verify user owns the conversation
+        user_id = request.current_user['id']
         conn = sqlite3.connect(app.config['DATABASE_PATH'])
         cursor = conn.cursor()
+        
+        # First verify the conversation belongs to the authenticated user
         cursor.execute('''
-            SELECT id, content, role, timestamp
+            SELECT id FROM conversations 
+            WHERE id = ? AND user_id = ? AND is_active = 1
+        ''', (conversation_id, user_id))
+        
+        if cursor.fetchone() is None:
+            conn.close()
+            return jsonify({'error': 'Conversation not found or access denied'}), 404
+        
+        # Now get the messages
+        cursor.execute('''
+            SELECT id, content, role, timestamp, tokens_used, processing_time, enhanced
             FROM messages 
             WHERE conversation_id = ? 
             ORDER BY timestamp ASC
@@ -392,19 +580,188 @@ def handle_messages(conversation_id):
         for row in cursor.fetchall():
             messages.append({
                 'id': row[0],
+                'conversation_id': conversation_id,
                 'content': row[1],
                 'role': row[2],
-                'timestamp': row[3]
+                'created_at': row[3],
+                'tokens_used': row[4] or 0,
+                'processing_time': row[5] or 0.0,
+                'enhanced': bool(row[6]) if row[6] is not None else False
             })
         
         conn.close()
-        return jsonify(messages)
+        return jsonify({'messages': messages})
+
+@app.route('/conversations/<conversation_id>/close', methods=['POST'])
+@require_auth
+def close_conversation(conversation_id):
+    """Close/deactivate a conversation."""
+    conn = sqlite3.connect(app.config['DATABASE_PATH'])
+    cursor = conn.cursor()
+    
+    # Set conversation as inactive
+    cursor.execute('''
+        UPDATE conversations 
+        SET is_active = 0, updated_at = ?
+        WHERE id = ? AND user_id = ?
+    ''', (datetime.now().isoformat(), conversation_id, request.current_user['id']))
+    
+    if cursor.rowcount == 0:
+        conn.close()
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Conversation closed'})
+
+@app.route('/conversations/<conversation_id>', methods=['DELETE'])
+@require_auth
+def delete_conversation(conversation_id):
+    """Delete/deactivate a conversation (same as close)."""
+    conn = sqlite3.connect(app.config['DATABASE_PATH'])
+    cursor = conn.cursor()
+    
+    # First verify the conversation exists and belongs to the user
+    cursor.execute('''
+        SELECT id FROM conversations 
+        WHERE id = ? AND user_id = ? AND is_active = 1
+    ''', (conversation_id, request.current_user['id']))
+    
+    if cursor.fetchone() is None:
+        conn.close()
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    # Set conversation as inactive
+    cursor.execute('''
+        UPDATE conversations 
+        SET is_active = 0, updated_at = ?
+        WHERE id = ? AND user_id = ?
+    ''', (datetime.now().isoformat(), conversation_id, request.current_user['id']))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Conversation deleted'})
+
+@app.route('/conversations/<conversation_id>', methods=['PATCH'])
+@require_auth
+def update_conversation(conversation_id):
+    """Update conversation details like title."""
+    data = request.get_json()
+    title = data.get('title')
+    
+    if not title:
+        return jsonify({'error': 'Title is required'}), 400
+    
+    conn = sqlite3.connect(app.config['DATABASE_PATH'])
+    cursor = conn.cursor()
+    
+    # First verify the conversation exists and belongs to the user
+    cursor.execute('''
+        SELECT id FROM conversations 
+        WHERE id = ? AND user_id = ? AND is_active = 1
+    ''', (conversation_id, request.current_user['id']))
+    
+    if cursor.fetchone() is None:
+        conn.close()
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    # Update the conversation title
+    cursor.execute('''
+        UPDATE conversations 
+        SET title = ?, updated_at = ?
+        WHERE id = ? AND user_id = ?
+    ''', (title, datetime.now().isoformat(), conversation_id, request.current_user['id']))
+    
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Conversation updated'})
+
+@app.route('/api/conversations', methods=['GET'])
+@require_auth
+def api_get_conversations():
+    """API version - Get user conversations."""
+    return get_conversations()
+
+@app.route('/api/conversations', methods=['POST'])
+@require_auth
+def api_create_conversation():
+    """API version - Create a new conversation."""
+    return create_conversation()
+
+@app.route('/api/conversations/<conversation_id>', methods=['DELETE'])
+@require_auth
+def api_delete_conversation(conversation_id):
+    """API version - Delete/deactivate a conversation."""
+    return delete_conversation(conversation_id)
+
+@app.route('/api/conversations/<conversation_id>', methods=['PATCH'])
+@require_auth
+def api_update_conversation(conversation_id):
+    """API version - Update conversation details."""
+    return update_conversation(conversation_id)
+
+@app.route('/api/conversations/<conversation_id>', methods=['GET'])
+@require_auth
+def api_get_conversation(conversation_id):
+    """API version - Get a specific conversation."""
+    conn = sqlite3.connect(app.config['DATABASE_PATH'])
+    cursor = conn.cursor()
+    
+    # Verify the conversation belongs to the authenticated user
+    cursor.execute('''
+        SELECT c.id, c.title, c.type, c.created_at, c.updated_at,
+               COUNT(m.id) as message_count,
+               MAX(m.timestamp) as last_message_at
+        FROM conversations c
+        LEFT JOIN messages m ON c.id = m.conversation_id
+        WHERE c.id = ? AND c.user_id = ? AND c.is_active = 1
+        GROUP BY c.id, c.title, c.type, c.created_at, c.updated_at
+    ''', (conversation_id, request.current_user['id']))
+    
+    row = cursor.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Conversation not found'}), 404
+    
+    conversation = {
+        'id': row[0],
+        'user_id': request.current_user['id'],
+        'title': row[1],
+        'conversation_type': row[2],
+        'created_at': row[3],
+        'updated_at': row[4],
+        'message_count': row[5] or 0,
+        'last_message_at': row[6],
+        'is_archived': False
+    }
+    
+    conn.close()
+    return jsonify({'conversation': conversation})
+
+@app.route('/api/conversations/<conversation_id>/messages', methods=['GET', 'POST'])
+@require_auth
+def api_handle_messages(conversation_id):
+    """API version - Handle messages."""
+    return handle_messages(conversation_id)
 
 # ============================
 # AI API ROUTES (Port 8000)
 # ============================
 
+@app.route('/debug/routes', methods=['GET'])
+def debug_routes():
+    """Debug endpoint to list all registered routes."""
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': list(rule.methods),
+            'rule': rule.rule
+        })
+    return jsonify({'routes': routes})
+
 @app.route('/api/status', methods=['GET'])
+@require_auth
 def api_status():
     """Get AI model and LM Studio status."""
     if not AI_AVAILABLE:
@@ -417,21 +774,33 @@ def api_status():
         })
     
     try:
-        current_time = time.time()
+        # Check if we're in local model only mode
+        use_local_only = os.getenv('USE_LOCAL_MODEL_ONLY', 'false').lower() == 'true'
         
-        # Use cached status if it's still valid
-        if (current_time - status_cache['timestamp']) < status_cache['cache_duration']:
-            lm_studio_available = status_cache['lm_studio_available']
+        if use_local_only:
+            # In local model only mode, show LM Studio as disabled
+            lm_studio_available = False
+            lm_studio_status = "disabled (local model only)"
         else:
-            # Only check LM Studio status if cache is expired
-            lm_studio_available = lm_enhancer.is_really_available() if lm_enhancer else False
-            status_cache['timestamp'] = current_time
-            status_cache['lm_studio_available'] = lm_studio_available
+            current_time = time.time()
+            
+            # Use cached status if it's still valid
+            if (current_time - status_cache['timestamp']) < status_cache['cache_duration']:
+                lm_studio_available = status_cache['lm_studio_available']
+            else:
+                # Only check LM Studio status if cache is expired
+                lm_studio_available = lm_enhancer.is_really_available() if lm_enhancer else False
+                status_cache['timestamp'] = current_time
+                status_cache['lm_studio_available'] = lm_studio_available
+            
+            lm_studio_status = "connected" if lm_studio_available else "disconnected"
         
         return jsonify({
             'success': True,
             'loaded': model is not None,
             'lm_studio_available': lm_studio_available,
+            'lm_studio_status': lm_studio_status,
+            'local_model_only': use_local_only,
             'device': str(device)
         })
     except Exception as e:
@@ -472,10 +841,23 @@ def api_chat():
             conn = sqlite3.connect(app.config['DATABASE_PATH'])
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO conversations (id, user_id, title, type, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (conversation_id, user_id, title, 'chat', datetime.now().isoformat(), datetime.now().isoformat()))
+                INSERT INTO conversations (id, user_id, title, type, created_at, updated_at, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (conversation_id, user_id, title, 'chat', datetime.now().isoformat(), datetime.now().isoformat(), 1))
             conn.commit()
+            conn.close()
+        else:
+            # Verify user owns the existing conversation
+            conn = sqlite3.connect(app.config['DATABASE_PATH'])
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id FROM conversations 
+                WHERE id = ? AND user_id = ? AND is_active = 1
+            ''', (conversation_id, user_id))
+            
+            if cursor.fetchone() is None:
+                conn.close()
+                return jsonify({'error': 'Conversation not found or access denied'}), 404
             conn.close()
         
         # Store user message
@@ -507,9 +889,10 @@ def api_chat():
         conn = sqlite3.connect(app.config['DATABASE_PATH'])
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO messages (id, conversation_id, content, role, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (ai_message_id, conversation_id, response, 'assistant', datetime.now().isoformat()))
+            INSERT INTO messages (id, conversation_id, content, role, timestamp, tokens_used, processing_time, enhanced)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (ai_message_id, conversation_id, response, 'assistant', datetime.now().isoformat(), 
+              max_tokens, processing_time, was_enhanced))
         conn.commit()
         conn.close()
         
@@ -568,10 +951,23 @@ def api_completion():
             conn = sqlite3.connect(app.config['DATABASE_PATH'])
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO conversations (id, user_id, title, type, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (conversation_id, user_id, title, 'completion', datetime.now().isoformat(), datetime.now().isoformat()))
+                INSERT INTO conversations (id, user_id, title, type, created_at, updated_at, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (conversation_id, user_id, title, 'completion', datetime.now().isoformat(), datetime.now().isoformat(), 1))
             conn.commit()
+            conn.close()
+        else:
+            # Verify user owns the existing conversation
+            conn = sqlite3.connect(app.config['DATABASE_PATH'])
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id FROM conversations 
+                WHERE id = ? AND user_id = ? AND is_active = 1
+            ''', (conversation_id, user_id))
+            
+            if cursor.fetchone() is None:
+                conn.close()
+                return jsonify({'error': 'Conversation not found or access denied'}), 404
             conn.close()
         
         # Store user prompt
@@ -607,9 +1003,10 @@ def api_completion():
         conn = sqlite3.connect(app.config['DATABASE_PATH'])
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO messages (id, conversation_id, content, role, timestamp)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (ai_message_id, conversation_id, completion_text, 'assistant', datetime.now().isoformat()))
+            INSERT INTO messages (id, conversation_id, content, role, timestamp, tokens_used, processing_time, enhanced)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (ai_message_id, conversation_id, completion_text, 'assistant', datetime.now().isoformat(),
+              max_tokens, processing_time, was_enhanced))
         conn.commit()
         conn.close()
         
@@ -634,6 +1031,7 @@ def api_completion():
         }), 500
 
 @app.route('/api/lm-studio/status', methods=['GET'])
+@require_auth
 def lm_studio_status():
     """Get LM Studio connection status."""
     if not AI_AVAILABLE or not lm_enhancer:
@@ -644,28 +1042,41 @@ def lm_studio_status():
         })
     
     try:
+        # Check if we're in local model only mode
+        use_local_only = os.getenv('USE_LOCAL_MODEL_ONLY', 'false').lower() == 'true'
+        
+        if use_local_only:
+            return jsonify({
+                'success': True,
+                'connected': False,
+                'active_url': None,
+                'status': 'disabled',
+                'reason': 'Local model only mode enabled'
+            })
+        
         current_time = time.time()
         
         # Use cached status if it's still valid
         if (current_time - status_cache['timestamp']) < status_cache['cache_duration']:
             is_available = status_cache['lm_studio_available']
+            active_url = lm_enhancer.active_url if is_available else None
         else:
             # Only check LM Studio status if cache is expired
             is_available = lm_enhancer.is_really_available()
             status_cache['timestamp'] = current_time
             status_cache['lm_studio_available'] = is_available
-        
-        status = lm_enhancer.get_status()
+            active_url = lm_enhancer.active_url if is_available else None
         
         return jsonify({
             'success': True,
             'connected': is_available,
-            'active_url': status['active_url'] if is_available else None
+            'active_url': active_url
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/lm-studio/reconnect', methods=['POST'])
+@require_auth
 def lm_studio_reconnect():
     """Reconnect to LM Studio."""
     if not AI_AVAILABLE or not lm_enhancer:

@@ -1020,28 +1020,33 @@ class LMStudioEnhancer:
         ]
         self.available = False
         self.active_url = None
-        self.custom_instruction = """You are an expert editor specializing in metal lyrics and dark poetry. Your task is to enhance AI-generated text while ensuring it properly addresses the user's request.
+        self.custom_instruction = """You are a metal music expert and lyricist specializing in dark, atmospheric musical content. Your task is to enhance AI-generated text while ensuring it stays focused on MUSIC themes.
 
-CRITICAL RULES:
-1. Check if the AI response actually answers or relates to the user's prompt
-2. If the response is off-topic, create a new response that addresses the user's request while keeping metal/gothic themes
-3. If the response is relevant but poorly written, fix grammar and improve flow
-4. Preserve ALL dark, metal, and gothic themes and atmosphere
-5. Keep responses concise and focused (same approximate length ±50%)
-6. Maintain the poetic/lyrical style appropriate for metal content
-7. NEVER add disclaimers, explanations, or meta-commentary
-8. Return ONLY the enhanced/corrected text - nothing else
+CRITICAL MUSIC-FOCUSED RULES:
+1. ALL responses must relate to music, metal, bands, songs, instruments, or musical concepts
+2. If the AI response is off-topic (not music-related), create NEW music-focused content that addresses the user's request
+3. If the response mentions music but is poorly written, fix grammar and improve flow
+4. ALWAYS include musical elements: guitars, drums, vocals, riffs, melodies, bands, concerts, etc.
+5. Maintain dark metal/gothic atmosphere with musical imagery
+6. Keep responses concise like powerful metal lyrics
+7. Reference metal subgenres, musical instruments, or band dynamics when relevant
+8. NEVER write generic content - always tie it to music/metal themes
+9. Return ONLY the enhanced musical content - nothing else
 
-EXAMPLES:
+MUSIC-FOCUSED EXAMPLES:
 User: "Write about fire"
 Bad AI: "darkness and the void consume all" 
-Enhanced: "Flames consume the earth, burning bright with ancient fury"
+Enhanced: "Guitar riffs ignite like flames, burning through amplified darkness with molten metal fury"
 
 User: "Tell me about death"
-Bad AI: "of light Beasts will burn in an icy mountain of."
-Enhanced: "Death calls from shadowed realms, where souls find eternal rest"
+Bad AI: "of light Beasts will burn in an icy mountain"
+Enhanced: "Death metal vocals echo through concert halls, where final notes fade into eternal silence"
 
-Focus on relevance first, then clarity and flow, while keeping the metal aesthetic intact."""
+User: "Describe a storm"
+Bad AI: "The paragraph discusses various types of music..."
+Enhanced: "Thunder drums crash like double bass pedals, while lightning guitars slice through the storm's symphonic rage"
+
+Focus on MUSIC RELEVANCE first, then metal atmosphere, while keeping everything musically themed."""
         
         self.check_availability()
     
@@ -1087,31 +1092,63 @@ Focus on relevance first, then clarity and flow, while keeping the metal aesthet
         original_response = model_response
         
         # Try different models in order of preference
-        models_to_try = ["phi-2", "meta-llama-3.1-8b-instruct", "qwen3-4b"]
+        # Get preferred model from environment variable, with fallbacks
+        preferred_model = os.getenv('LM_STUDIO_MODEL', 'qwen3-4b')  # Changed default to your model
+        fallback_models = ["qwen3-4b", "meta-llama-3.1-8b-instruct", "phi-2"]  # Reordered with qwen3-4b first
+        
+        # Create models list with preferred model first, then fallbacks (avoiding duplicates)
+        models_to_try = [preferred_model] + [m for m in fallback_models if m != preferred_model]
+        
+        print(f"🎯 LM Studio: Using preferred model '{preferred_model}' from .env")
+        print(f"📋 LM Studio: Fallback order: {models_to_try}")
         
         for model_name in models_to_try:
             try:
-                # Create clean prompts without instruction words
+                print(f"🎵 LM Studio: Attempting enhancement with model '{model_name}'")
+                
+                # Create enhanced prompts with strong music/metal context
                 if self._is_response_relevant(user_prompt, model_response):
                     # Response is relevant, just fix grammar/flow by passing it directly
-                    enhancement_prompt = model_response
-                    system_message = "Fix grammar and improve flow. Keep the dark metal theme intact. Return only the improved text."
+                    enhancement_prompt = f"Improve this metal/music content while keeping it dark and atmospheric:\n\n{model_response}"
+                    system_message = """You are a metal music lyricist and expert editor. Fix grammar, improve flow, and enhance the dark metal/gothic atmosphere. 
+RULES:
+- Keep ALL content focused on music, metal, bands, songs, or musical themes
+- Maintain dark, heavy, gothic, or metal atmosphere
+- Return ONLY the improved text - no explanations
+- Keep it concise and powerful like metal lyrics
+- Focus on music-related imagery (instruments, bands, concerts, sounds, etc.)"""
                 else:
                     # Response is not relevant, create new response about the topic
-                    enhancement_prompt = user_prompt
-                    system_message = "Create dark metal themed content. Be gothic and atmospheric. Return only the content."
+                    enhancement_prompt = f"Create dark metal/music content about: {user_prompt}"
+                    system_message = """You are a metal music lyricist specializing in dark, atmospheric content. Create music-focused content that relates to the user's request.
+RULES:
+- ALWAYS relate your response to music, metal bands, songs, instruments, or musical themes
+- Use dark, gothic, heavy metal atmosphere and imagery
+- Write like metal song lyrics or music descriptions
+- Include musical elements: guitars, drums, vocals, riffs, melodies, etc.
+- Reference metal subgenres, band dynamics, or musical concepts
+- Return ONLY the content - no explanations or meta-commentary
+- Keep responses focused and powerful like metal lyrics"""
 
+                # Get LM Studio settings from environment variables
+                temperature = float(os.getenv('LM_STUDIO_TEMPERATURE', '0.7'))
+                max_tokens_env = int(os.getenv('LM_STUDIO_MAX_TOKENS', '1024'))
+                top_p = float(os.getenv('LM_STUDIO_TOP_P', '0.9'))
+                
                 payload = {
                     "model": model_name,
                     "messages": [
                         {"role": "system", "content": system_message},
                         {"role": "user", "content": enhancement_prompt}
                     ],
-                    "temperature": 0.5,  # Lower for more focused responses
-                    "max_tokens": min(max_tokens // 2, 50),    # Use half of user's setting, max 50 for LM Studio
+                    "temperature": temperature,
+                    "max_tokens": min(max_tokens // 2, max_tokens_env, 100),  # Use env setting but respect user limits
+                    "top_p": top_p,
                     "stream": False,
-                    "stop": ["\n", "User:", "System:", "Assistant:"]  # Reduced stop tokens for longer responses
+                    "stop": ["\n\n", "User:", "System:", "Assistant:", "The paragraph discusses", "Various types of", "It also mentions", "This includes"]  # Stop generic music discussions
                 }
+                
+                print(f"🔧 LM Studio: Request payload - model: {model_name}, temp: {temperature}, max_tokens: {payload['max_tokens']}")
                 
                 response = requests.post(
                     f"{self.active_url}/v1/chat/completions",
@@ -1183,11 +1220,14 @@ Focus on relevance first, then clarity and flow, while keeping the metal aesthet
                                 not any(phrase in enhanced_text.lower() for phrase in ['i cannot', 'as an ai', 'sorry', 'fix grammar', 'write metal', 'dark metal style'])):
                                 # Check if the enhancement actually changed something meaningful
                                 if enhanced_text.strip() != original_response.strip():
+                                    print(f"✅ LM Studio: Successfully enhanced using model '{model_name}'")
+                                    print(f"📝 LM Studio: Result: {enhanced_text[:100]}...")
                                     return enhanced_text, True  # Success with this model and actually enhanced
                                 else:
                                     return original_response, False  # No meaningful change
                 
                 # If this model didn't work, try the next one
+                print(f"❌ LM Studio: Model '{model_name}' failed, trying next...")
                 continue
                     
             except requests.exceptions.RequestException:
@@ -1308,8 +1348,24 @@ Focus on relevance first, then clarity and flow, while keeping the metal aesthet
             self.active_url = None
             return False
 
-# Initialize the enhancer
-lm_enhancer = LMStudioEnhancer()
+# Initialize the enhancer (disabled if using local model only)
+use_local_only = os.getenv('USE_LOCAL_MODEL_ONLY', 'false').lower() == 'true'
+if use_local_only:
+    print("🔥 Local model only mode enabled - LM Studio enhancement disabled")
+    # Create a dummy enhancer that's always unavailable
+    class DummyEnhancer:
+        def __init__(self):
+            self.available = False
+            self.active_url = None
+        def enhance_response(self, prompt, response, max_tokens):
+            return response, False
+        def check_availability(self):
+            return False
+        def get_status(self):
+            return {"status": "disabled", "reason": "local_model_only"}
+    lm_enhancer = DummyEnhancer()
+else:
+    lm_enhancer = LMStudioEnhancer()
 
 if __name__ == "__main__":
     # Check if model exists

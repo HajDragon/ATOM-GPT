@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import ChatLayout from './components/ChatLayout';
 import CompletionInterface from './components/CompletionInterface';
 import StatusPanel from './components/StatusPanel';
 import Navigation from './components/Navigation';
 import AuthModal from './components/AuthModal';
 import UserProfile from './components/UserProfile';
+import authService from './services/auth';
 import './App.css';
 
 interface AppState {
@@ -26,6 +28,10 @@ function App() {
   const [showUserProfile, setShowUserProfile] = useState(false);
 
   useEffect(() => {
+    // Initialize auth service
+    authService.initialize();
+    console.log('🚀 App initialized with auth service');
+    
     // Check initial status
     checkStatus();
     
@@ -71,64 +77,66 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="app-container">
-          <Routes>
-            <Route path="/" element={
-              <ChatLayout 
-                lmStudioStatus={appState.lmStudioStatus}
-                modelStatus={appState.modelStatus}
-                onRefresh={checkStatus}
-                onShowAuth={() => setShowAuthModal(true)}
-                onShowProfile={() => setShowUserProfile(true)}
+          <ProtectedRoute>
+            <Routes>
+              <Route path="/" element={
+                <ChatLayout 
+                  lmStudioStatus={appState.lmStudioStatus}
+                  modelStatus={appState.modelStatus}
+                  onRefresh={checkStatus}
+                  onShowAuth={() => setShowAuthModal(true)}
+                  onShowProfile={() => setShowUserProfile(true)}
+                />
+              } />
+              <Route path="/chat" element={
+                <ChatLayout 
+                  lmStudioStatus={appState.lmStudioStatus}
+                  modelStatus={appState.modelStatus}
+                  onRefresh={checkStatus}
+                  onShowAuth={() => setShowAuthModal(true)}
+                  onShowProfile={() => setShowUserProfile(true)}
+                />
+              } />
+              <Route path="/completion" element={
+                <div className="main-content">
+                  <header className="header">
+                    <div className="logo-container">
+                      <div className="logo-circle">A</div>
+                      <div className="logo-text">ATOM-GPT</div>
+                    </div>
+                    
+                    <div className="header-controls">
+                      <Navigation />
+                      <StatusPanel 
+                        lmStudioStatus={appState.lmStudioStatus}
+                        modelStatus={appState.modelStatus}
+                        onRefresh={checkStatus}
+                        onShowAuth={() => setShowAuthModal(true)}
+                        onShowProfile={() => setShowUserProfile(true)}
+                      />
+                    </div>
+                  </header>
+                  <CompletionInterface />
+                </div>
+              } />
+            </Routes>
+            
+            {/* Auth Modal - only show if user is authenticated */}
+            {showAuthModal && (
+              <AuthModal 
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
               />
-            } />
-            <Route path="/chat" element={
-              <ChatLayout 
-                lmStudioStatus={appState.lmStudioStatus}
-                modelStatus={appState.modelStatus}
-                onRefresh={checkStatus}
-                onShowAuth={() => setShowAuthModal(true)}
-                onShowProfile={() => setShowUserProfile(true)}
+            )}
+            
+            {/* User Profile Modal */}
+            {showUserProfile && (
+              <UserProfile 
+                isOpen={showUserProfile}
+                onClose={() => setShowUserProfile(false)}
               />
-            } />
-            <Route path="/completion" element={
-              <div className="main-content">
-                <header className="header">
-                  <div className="logo-container">
-                    <div className="logo-circle">A</div>
-                    <div className="logo-text">ATOM-GPT</div>
-                  </div>
-                  
-                  <div className="header-controls">
-                    <Navigation />
-                    <StatusPanel 
-                      lmStudioStatus={appState.lmStudioStatus}
-                      modelStatus={appState.modelStatus}
-                      onRefresh={checkStatus}
-                      onShowAuth={() => setShowAuthModal(true)}
-                      onShowProfile={() => setShowUserProfile(true)}
-                    />
-                  </div>
-                </header>
-                <CompletionInterface />
-              </div>
-            } />
-          </Routes>
-          
-          {/* Auth Modal */}
-          {showAuthModal && (
-            <AuthModal 
-              isOpen={showAuthModal}
-              onClose={() => setShowAuthModal(false)}
-            />
-          )}
-          
-          {/* User Profile Modal */}
-          {showUserProfile && (
-            <UserProfile 
-              isOpen={showUserProfile}
-              onClose={() => setShowUserProfile(false)}
-            />
-          )}
+            )}
+          </ProtectedRoute>
         </div>
       </Router>
     </AuthProvider>

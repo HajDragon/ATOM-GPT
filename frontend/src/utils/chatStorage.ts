@@ -3,22 +3,6 @@
  * Provides localStorage-based conversation management for backward compatibility
  */
 
-export interface SavedMessage {
-  id: string;
-  content: string;
-  role: 'user' | 'assistant';
-  timestamp: number;
-  isLoading?: boolean;
-}
-
-export interface SavedConversation {
-  id: string;
-  title: string;
-  messages: SavedMessage[];
-  createdAt: Date;
-  lastModified: Date;
-}
-
 export interface ChatConversation {
   id: string;
   title: string;
@@ -27,6 +11,23 @@ export interface ChatConversation {
   lastActivity: number;
   isFromDatabase?: boolean;
   needsSync?: boolean;
+}
+
+// Legacy interface for backward compatibility
+export interface SavedConversation {
+  id: string;
+  title: string;
+  messages: SavedMessage[];
+  createdAt: Date | string;
+  lastModified: Date | string;
+}
+
+export interface SavedMessage {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant' | 'system';
+  timestamp: number;
+  isLoading?: boolean;
 }
 
 export interface CompletionHistory {

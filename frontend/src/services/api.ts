@@ -1,11 +1,19 @@
 import axios from 'axios';
 
-// Unified backend on port 8000
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000, // 30 seconds
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Create a separate client for conversation endpoints (no /api prefix)
+const conversationApi = axios.create({
+  baseURL: 'http://localhost:8000',
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -92,19 +100,19 @@ export interface StatusResponse {
 // API Methods
 export const chatAPI = {
   sendMessage: async (request: ChatRequest): Promise<ChatResponse> => {
-    const response = await aiApi.post('/api/chat', request);
+    const response = await aiApi.post('/chat', request);
     return response.data;
   },
 
   getStatus: async (): Promise<StatusResponse> => {
-    const response = await aiApi.get('/api/status');
+    const response = await aiApi.get('/status');
     return response.data;
   },
 };
 
 export const completionAPI = {
   generate: async (request: CompletionRequest): Promise<CompletionResponse> => {
-    const response = await aiApi.post('/api/completion', request);
+    const response = await aiApi.post('/completion', request);
     return response.data;
   },
 };
@@ -138,5 +146,5 @@ export const modelAPI = {
   },
 };
 
-export { authApi, aiApi, api };
+export { authApi, aiApi, api, conversationApi };
 export default api;

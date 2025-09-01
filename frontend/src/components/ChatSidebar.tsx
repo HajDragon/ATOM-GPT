@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SavedConversation, getSavedConversations, deleteConversation } from '../utils/chatStorage';
+import { databaseService } from '../services/database';
 
 interface ChatSidebarProps {
   onSelectConversation: (conversation: SavedConversation) => void;
@@ -19,16 +20,37 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
     loadConversations();
   }, []);
 
-  const loadConversations = () => {
-    const saved = getSavedConversations();
-    setConversations(saved);
+  const loadConversations = async () => {
+    try {
+      const conversations = await databaseService.getConversations();
+      setConversations(conversations.map(conv => ({
+        id: conv.id,
+        title: conv.title,
+        messages: [], // Messages loaded separately
+        createdAt: conv.created_at,
+        lastModified: conv.updated_at || conv.created_at
+      })));
+    } catch (error) {
+      console.error('Failed to load conversations from database:', error);
+      // Fallback to localStorage if database fails
+      const saved = getSavedConversations();
+      setConversations(saved);
+    }
   };
 
-  const handleDeleteConversation = (conversationId: string, event: React.MouseEvent) => {
+  const handleDeleteConversation = async (conversationId: string, event: React.MouseEvent) => {
     event.stopPropagation();
     if (window.confirm('Are you sure you want to delete this conversation?')) {
-      deleteConversation(conversationId);
-      loadConversations();
+      try {
+        // Delete from backend database
+        await databaseService.deleteConversation(conversationId);
+        // Also remove from local storage
+        deleteConversation(conversationId);
+        loadConversations();
+      } catch (error) {
+        console.error('Failed to delete conversation:', error);
+        alert('Failed to delete conversation. Please try again.');
+      }
     }
   };
 

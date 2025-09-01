@@ -63,6 +63,8 @@ Because the code is optimized for metal lyrics generation, it is very easy to ha
 ### 🚀 Quick Start & Setup
 - **[Main README](README.md)** - This file - overview and getting started
 - **[Backend Setup](backend/README.md)** - Complete backend setup and training guide
+- **[API Server Guide](backend/api/README.md)** - API server setup and documentation
+- **[Dataset Guide](backend/data/DarkLyrics/README.md)** - Dataset preparation and analysis
 - **[Frontend Setup](frontend/README.md)** - React frontend installation and configuration
 - **[Environment Configuration](.env.example)** - Environment variables and configuration options
 

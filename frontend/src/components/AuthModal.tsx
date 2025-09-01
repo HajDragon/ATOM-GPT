@@ -6,19 +6,21 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode?: 'login' | 'register';
+  showCloseButton?: boolean;
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
-  initialMode = 'login'
+  initialMode = 'login',
+  showCloseButton = true
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
 
   if (!isOpen) return null;
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+    if (e.target === e.currentTarget && showCloseButton) {
       onClose();
     }
   };
@@ -26,9 +28,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
   return (
     <div className="modal-overlay" onClick={handleOverlayClick}>
       <div className="modal-content">
-        <button className="modal-close" onClick={onClose}>
-          ×
-        </button>
+        {showCloseButton && (
+          <button className="modal-close" onClick={onClose}>
+            ×
+          </button>
+        )}
 
         {mode === 'login' ? (
           <Login

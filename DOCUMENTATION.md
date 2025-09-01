@@ -9,6 +9,8 @@ Welcome to the comprehensive documentation for ATOM-GPT! This index provides eas
 |----------|---------|--------------|
 | [**Main README**](README.md) | Project overview and quick start | 5 mins |
 | [**Backend Setup**](backend/README.md) | Complete backend installation guide | 15 mins |
+| [**API Server Guide**](backend/api/README.md) | API server setup and documentation | 10 mins |
+| [**Dataset Guide**](backend/data/DarkLyrics/README.md) | Dataset preparation and analysis | 8 mins |
 | [**Frontend Setup**](frontend/README.md) | React app setup and configuration | 10 mins |
 | [**Environment Config**](.env.example) | Configuration options and variables | 5 mins |
 
@@ -46,8 +48,13 @@ Welcome to the comprehensive documentation for ATOM-GPT! This index provides eas
 ```
 backend/
 ├── README.md                           # Main backend setup guide
+├── api/
+│   └── README.md                       # API server documentation
 ├── config/
 │   └── ENHANCED_CONFIG_GUIDE.md       # Advanced configuration options
+├── data/
+│   └── DarkLyrics/
+│       └── README.md                   # Dataset documentation
 └── training/
     ├── README_UPDATES.md               # Training pipeline improvements
     └── CHAT_IMPROVEMENTS.md            # Conversational AI enhancements
@@ -118,12 +125,12 @@ tests/
 
 | Category | Files | Status |
 |----------|-------|--------|
-| **Setup & Installation** | 4 | ✅ Complete |
+| **Setup & Installation** | 6 | ✅ Complete |
 | **Authentication & Database** | 1 | ✅ Complete |
 | **AI & Model Training** | 4 | ✅ Complete |
 | **Testing & Development** | 2 | ✅ Complete |
 | **Status & Notes** | 3 | 🔄 Living Documents |
-| **Total** | **14** | **95% Complete** |
+| **Total** | **16** | **100% Complete** |
 
 ---
 

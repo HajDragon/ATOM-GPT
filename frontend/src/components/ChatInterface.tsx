@@ -142,7 +142,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     setMessages(prev => [...prev, tempAssistantMessage]);
 
     try {
-      const response = await api.post('/api/chat', {
+      const response = await api.post('/chat', {
         message: userMessage.content,
         settings: settings,
         enhance: lmStudioEnabled,

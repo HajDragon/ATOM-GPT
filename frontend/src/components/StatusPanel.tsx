@@ -37,7 +37,7 @@ const StatusPanel: React.FC<StatusPanelProps> = ({
     <div className="status-panel">
       <div className="status-item">
         <div className={`status-indicator ${getStatusClass(lmStudioStatus)}`}></div>
-        <span>LM Studio: {lmStudioStatus}</span>
+        <span>LM Studio: {lmStudioStatus === 'disconnected' ? 'disabled (local model)' : lmStudioStatus}</span>
       </div>
       
       <div className="status-item">

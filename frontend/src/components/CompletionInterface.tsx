@@ -51,7 +51,7 @@ const CompletionInterface: React.FC = () => {
     setGenerationProgress(0);
 
     try {
-      const response = await api.post('/api/completion', {
+      const response = await api.post('/completion', {
         prompt: settings.prompt,
         settings: {
           tokens: settings.tokens,

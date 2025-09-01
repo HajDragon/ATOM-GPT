@@ -44,9 +44,20 @@ export interface ChatMessage {
 
 class DatabaseService {
   private ensureAuth() {
-    if (!authService.isAuthenticated()) {
+    const isAuth = authService.isAuthenticated();
+    const token = authService.getToken();
+    console.log('🔍 Auth check:', { 
+      isAuthenticated: isAuth, 
+      hasToken: !!token, 
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none' 
+    });
+    
+    if (!isAuth) {
       throw new Error('User not authenticated');
     }
+    
+    // Ensure the auth header is set before making requests
+    authService.initialize();
   }
 
   // Conversation Management
@@ -55,9 +66,9 @@ class DatabaseService {
     try {
       const response = await authApi.post('/conversations', {
         title,
-        conversation_type: type
+        type
       });
-      return response.data.conversation_id;
+      return response.data.conversation_id || response.data.id;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Failed to create conversation');
     }
@@ -70,7 +81,7 @@ class DatabaseService {
       if (type) params.type = type;
 
       const response = await authApi.get('/conversations', { params });
-      return response.data.conversations;
+      return response.data.conversations || response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Failed to get conversations');
     }
@@ -89,8 +100,16 @@ class DatabaseService {
   async deleteConversation(conversationId: string): Promise<void> {
     this.ensureAuth();
     try {
-      await authApi.delete(`/conversations/${conversationId}`);
+      console.log(`🗑️ Attempting to delete conversation: ${conversationId}`);
+      console.log(`🔗 Using URL: ${authApi.defaults.baseURL}/conversations/${conversationId}`);
+      
+      const response = await authApi.delete(`/conversations/${conversationId}`);
+      console.log('✅ Conversation deleted successfully:', response.status);
     } catch (error: any) {
+      console.error('❌ Error deleting conversation:', error);
+      console.error('Response status:', error.response?.status);
+      console.error('Response data:', error.response?.data);
+      console.error('Full error:', error);
       throw new Error(error.response?.data?.error || 'Failed to delete conversation');
     }
   }
@@ -126,7 +145,7 @@ class DatabaseService {
         content,
         ...metadata
       });
-      return response.data.message_id;
+      return response.data.message_id || response.data.id;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Failed to add message');
     }
@@ -136,7 +155,7 @@ class DatabaseService {
     this.ensureAuth();
     try {
       const response = await authApi.get(`/conversations/${conversationId}/messages`);
-      return response.data.messages;
+      return response.data.messages || response.data;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Failed to get messages');
     }
