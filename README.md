@@ -6,50 +6,195 @@
 
 This project includes both a **command-line training interface** and a **modern web application** with ChatGPT-style UI for interactive metal lyrics generation.
 
-> 📚 **[Complete Documentation Index](DOCUMENTATION.md)** | 🚀 **[Quick Start Guide](#quick-start---web-app)** | 🔧 **[Setup Instructions](#install)**
+> 📚 **[Complete Documentation Index](DOCUMENTATION.md)** | 🚀 **[Quick Start Guide](#-quick-start)** | 🔧 **[Setup Instructions](#-installation)**
 
 ![repro124m](assets/gpt2_124M_loss.png)
 
 ## 📋 Table of Contents
 
-- [📚 Documentation](#-documentation) - Complete documentation index
-- [🏗️ Project Structure](#project-structure) - Repository organization  
-- [🎨 Architecture & Visualization](#architecture--visualization) - System overview
-- [⚙️ Installation](#install) - Dependencies and setup
-- [🚀 Quick Start - Web App](#running-the-web-application) - Run the application
-- [🤖 Training](#training) - Model training guides
-- [📊 Dataset](#the-dataset-darklyrics) - Information about the training data
+- [� Quick Start](#-quick-start) - Get running in minutes
+- [⚙️ Installation](#-installation) - Detailed setup instructions
+- [�📚 Documentation](#-documentation) - Complete documentation index
+- [🏗️ Project Structure](#-project-structure) - Repository organization  
+- [🎨 Architecture & Visualization](#-architecture--visualization) - System overview
+- [🚀 Web Application](#-running-the-web-application) - Interactive web interface
+- [🤖 Training](#-training) - Model training guides
+- [📊 Dataset](#-the-dataset-darklyrics) - Information about the training data
 
-## Project Structure
+## 🚀 Quick Start
+
+Get ATOM-GPT running in just a few commands:
+
+### Prerequisites
+- **Python 3.8+** - [Download here](https://python.org)
+- **Node.js 16+** - [Download here](https://nodejs.org)
+- **Git** - [Download here](https://git-scm.com)
+
+### One-Command Setup
+
+**For Linux/Mac:**
+```bash
+# Clone and setup
+git clone https://github.com/HajDragon/ATOM-GPT.git
+cd ATOM-GPT
+chmod +x setup.sh && ./setup.sh
+```
+
+**For Windows:**
+```batch
+REM Clone and setup
+git clone https://github.com/HajDragon/ATOM-GPT.git
+cd ATOM-GPT
+setup.bat
+```
+
+### Start the Application
+
+**Development Mode:**
+```bash
+# Linux/Mac
+./start-dev.sh
+
+# Windows
+start-dev.bat
+```
+
+**Production Mode:**
+```bash
+# Linux/Mac
+./start-prod.sh
+
+# Windows (use existing start-atomgpt.bat)
+start-atomgpt.bat
+```
+
+### Access the Application
+- 🌐 **Web Interface:** http://localhost:3000
+- 🔧 **API Backend:** http://localhost:8000  
+- 📊 **Health Check:** http://localhost:8000/health
+
+### Default Admin Account
+- **Email:** `admin@atomgpt.local`
+- **Password:** `admin123`
+
+---
+
+## ⚙️ Installation
+
+### System Requirements
+- **Python:** 3.8 or higher
+- **Node.js:** 16 or higher  
+- **RAM:** 4GB minimum (8GB+ recommended)
+- **Storage:** 2GB free space
+- **GPU:** Optional (CUDA-compatible for training)
+
+### Manual Installation
+
+<details>
+<summary>Click to expand manual installation steps</summary>
+
+#### 1. Clone Repository
+```bash
+git clone https://github.com/HajDragon/ATOM-GPT.git
+cd ATOM-GPT
+```
+
+#### 2. Backend Setup
+```bash
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# On Linux/Mac:
+source venv/bin/activate
+# On Windows:
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+cd backend && pip install -r requirements.txt && cd ..
+```
+
+#### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+#### 4. Configuration
+```bash
+# Create .env file
+cp .env.example .env  # Edit with your settings
+```
+
+#### 5. Initialize Database
+```bash
+cd backend
+python -c "from app import init_database; init_database()"
+cd ..
+```
+
+</details>
+
+## 📚 Documentation
+
+For complete documentation, see **[DOCUMENTATION.md](DOCUMENTATION.md)** which includes all guides, setup instructions, and technical details.
+
+## 🏗️ Project Structure
 
 This project is organized with a clean separation between backend and frontend components:
 
 ```
-├── backend/          # All backend components (training, models, data)
-│   ├── api/          # Flask API server for web application
-│   ├── config/       # Training configurations
-│   ├── data/         # Datasets and preprocessing
-│   ├── models/       # Model definitions
-│   ├── scrapers/     # Data collection tools
-│   ├── training/     # Training and sampling scripts
-│   ├── utils/        # Utility functions
-|   |__ visualization/# Project documentation and visualizations
-│   └── notebooks/    # Analysis notebooks
-├── frontend/         # React web application
-│   ├── public/       # Static assets
-│   ├── src/          # React components and logic
-│   │   ├── components/   # UI components (chat, completion interfaces)
-│   │   ├── utils/        # Frontend utilities
-│   │   └── App.tsx       # Main application
-│   └── package.json  # Frontend dependencies
-├── assets/           # Images and static files
-├── LICENSE
-└── README.md
+ATOM-GPT/                 # 🏠 Project Root
+├── 📁 backend/           # 🔧 Backend Services & AI
+│   ├── 🌐 api/          # REST API endpoints
+│   ├── ⚙️ config/       # Training configurations  
+│   ├── 📊 data/         # Datasets and preprocessing
+│   ├── 🧠 models/       # AI model definitions
+│   ├── 🕷️ scrapers/     # Data collection tools
+│   ├── 🎯 training/     # Training scripts & utilities
+│   ├── 🛠️ utils/        # Helper functions
+│   ├── 📈 visualization/# Charts and flowcharts
+│   ├── 📓 notebooks/    # Jupyter analysis notebooks
+│   ├── 🗄️ database/     # Database migrations & backups
+│   ├── 🔐 auth/         # Authentication middleware
+│   └── 📄 app.py        # Main Flask application
+├── 📁 frontend/          # ⚛️ React Web Application  
+│   ├── 📂 public/       # Static assets
+│   ├── 📂 src/          # React source code
+│   │   ├── 🎨 components/   # UI components
+│   │   ├── 🔧 services/     # API communication
+│   │   ├── 🛠️ utils/        # Frontend utilities
+│   │   └── 📄 App.tsx       # Main React app
+│   ├── 📦 package.json  # Frontend dependencies
+│   └── 🔨 build/        # Production build (generated)
+├── 📁 assets/            # 🖼️ Images and static files
+├── 📁 scripts/           # 🔧 Setup and utility scripts
+├── 📁 tests/             # 🧪 Test suites and documentation
+├── 📄 .gitignore        # Git ignore rules (excludes models/data)
+├── 📄 setup.sh          # 🚀 One-command setup (Linux/Mac)
+├── 📄 setup.bat         # 🚀 One-command setup (Windows)
+├── 📄 start-dev.sh      # 🏃 Development startup script
+├── 📄 requirements.txt  # 🐍 Python dependencies
+├── 📄 .env.example      # ⚙️ Environment configuration template
+└── 📄 README.md         # 📖 This file
 ```
 
-See [backend/README.md](backend/README.md) for detailed backend documentation.
+### 🔍 Key Features
+- **🔐 Mandatory Authentication** - Secure user isolation and data protection
+- **💬 Interactive Chat Interface** - ChatGPT-style metal lyrics generation
+- **📝 Text Completion** - Metal-focused text completion engine  
+- **🎯 User-Specific Conversations** - Isolated conversation management
+- **🗄️ Database Integration** - SQLite with user management and conversation history
+- **🚀 Easy Setup** - One-command installation and startup scripts
+- **📱 Responsive UI** - Modern React frontend with mobile support
+- **🔧 Developer Tools** - Comprehensive testing and debugging utilities
 
-## Architecture & Visualization
+See [backend/README.md](backend/README.md) for detailed backend documentation and [frontend/README.md](frontend/README.md) for frontend specifics.
+
+## 🎨 Architecture & Visualization
 
 For a comprehensive understanding of the ATOM-GPT architecture and workflow:
 

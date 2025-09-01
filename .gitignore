@@ -1,31 +1,263 @@
+# ============================
+# ATOM-GPT PROJECT GITIGNORE
+# ============================
+
+# ========================
+# SYSTEM & EDITOR FILES
+# ========================
 .DS_Store
-.idea
+.idea/
 .ipynb_checkpoints/
-.vscode
+.vscode/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.cache/
+.pytest_cache/
+
+# ========================
+# PYTHON VIRTUAL ENVIRONMENTS
+# ========================
+env/
+venv/
+.env/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+conda-meta/
+
+# ========================
+# ENVIRONMENT & SECRETS
+# ========================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+secrets.json
+config.local.json
+*.key
+*.pem
+*.p12
+
+# ========================
+# AI MODELS & TRAINING DATA
+# ========================
+# Trained model files (usually large)
 *.bin
 *.pkl
 *.pt
-*.pyc
-input.txt
-env/
-venv/
+*.pth
+*.safetensors
+*.ckpt
+*.h5
+*.onnx
+*.tflite
+*.pb
 
-# Environment configuration
-.env
-
-# Backend outputs and data
+# Model checkpoints and training outputs
 backend/out-*/
+backend/training/out-*/
+backend/models/saved/
+backend/models/checkpoints/
+model_checkpoints/
+checkpoints/
+saved_models/
+outputs/
+
+# Training data and datasets (can be large)
 backend/data/*/
+data/*/
+datasets/
+corpus/
+lyrics/
+*.txt
+!requirements.txt
+!README.txt
 !backend/data/**/readme.md
 !backend/data/**/prepare.py
+!backend/data/**/download.py
 
-# Logs and temporary files
+# Specific data files
+input.txt
+all_lyrics.txt
+all_lyrics.backup.txt
+train.bin
+val.bin
+meta.pkl
+
+# ========================
+# DATABASE FILES
+# ========================
+*.db
+*.sqlite
+*.sqlite3
+backend/atom_gpt.db
+backend/database/backup/*.db
+backend/database/backup/*.sql
+
+# ========================
+# LOGS & TEMPORARY FILES
+# ========================
 *.log
 *.tmp
+*.temp
 tempCodeRunnerFile.py
+nul
+debug.log
+error.log
+access.log
+training.log
 
-# Frontend (when added)
+# ========================
+# FRONTEND (Node.js/React)
+# ========================
 frontend/node_modules/
 frontend/dist/
+frontend/build/
 frontend/.next/
+frontend/out/
+frontend/.nuxt/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/coverage/
+
+# Frontend environment and config
+frontend/.env*
+frontend/.DS_Store
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.pnpm-debug.log*
+
+# ========================
+# BACKEND SPECIFIC
+# ========================
+# Python packages and dependencies
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.coverage
+.nox/
+coverage.xml
+
+# ========================
+# OS GENERATED FILES
+# ========================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ========================
+# JUPYTER NOTEBOOKS
+# ========================
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+*.ipynb
+!example*.ipynb
+!demo*.ipynb
+
+# ========================
+# DEVELOPMENT & BUILD ARTIFACTS
+# ========================
+dist/
+build/
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ========================
+# CLOUD & DEPLOYMENT
+# ========================
+.docker/
+docker-compose.override.yml
+.kubernetes/
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# ========================
+# BACKUP & ARCHIVE FILES
+# ========================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+
+# ========================
+# LARGE MEDIA FILES
+# ========================
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.mp4
+*.avi
+*.mkv
+*.mov
+*.wmv
+*.flv
+*.webm
+
+# ========================
+# KEEP ESSENTIAL FILES
+# ========================
+# Force include important files even if they match patterns above
+!README.md
+!LICENSE
+!requirements.txt
+!package.json
+!package-lock.json
+!yarn.lock
+!.gitkeep
+!.gitignore
+!.github/
+!docs/
+!examples/
+!scripts/setup*
+!scripts/install*

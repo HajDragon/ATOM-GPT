@@ -1,0 +1,2 @@
+# This file ensures the database backup directory exists
+# Database files are ignored but structure is maintained
